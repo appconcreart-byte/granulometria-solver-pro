@@ -229,7 +229,7 @@ const CostReportPage = () => {
                     if (!active || !payload?.length) return null;
                     const d = payload[0]?.payload;
                     return (
-                      <div className="rounded-lg border bg-white shadow-lg px-4 py-3 text-sm">
+                      <div className="rounded-lg border bg-white dark:bg-card shadow-lg px-4 py-3 text-sm">
                         <p className="font-bold mb-1">{label}</p>
                         <p>Total: <strong>R$ {Number(d?.totalBatelada || 0).toFixed(2)}</strong></p>
                         <p className="text-muted-foreground">{d?.batchCount || 0} lote(s) • {d?.analysisCount || 0} traço(s)</p>

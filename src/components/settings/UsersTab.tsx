@@ -33,7 +33,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 const ROLE_COLORS: Record<UserRole, string> = {
-  ADMIN: "bg-red-500/15 text-red-700 border-red-200",
+  ADMIN: "bg-red-500/15 text-red-700 border-red-200 dark:text-red-300 dark:border-red-900",
   PRODUCAO: "bg-blue-500/15 text-blue-700 border-blue-200",
   VENDAS: "bg-emerald-500/15 text-emerald-700 border-emerald-200",
   GERENTE: "bg-amber-500/15 text-amber-700 border-amber-200",

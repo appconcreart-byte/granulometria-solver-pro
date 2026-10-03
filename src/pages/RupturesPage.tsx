@@ -26,9 +26,9 @@ const statusColor: Record<ScheduleStatus, string> = {
   pendente: "border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100",
   em_andamento: "border-blue-400 text-blue-700 bg-blue-50 hover:bg-blue-100",
   concluido: "border-green-400 text-green-700 bg-green-50 hover:bg-green-100",
-  atrasado: "border-destructive text-destructive bg-red-50 hover:bg-red-100",
+  atrasado: "border-destructive text-destructive bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-950/60",
   ignorado: "border-muted text-muted-foreground bg-muted/20 opacity-50 cursor-not-allowed",
-  sem_expediente: "border-slate-300 text-slate-600 bg-slate-50 opacity-80 cursor-not-allowed",
+  sem_expediente: "border-slate-300 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 opacity-80 cursor-not-allowed",
 };
 
 const dueTodayColor = "border-purple-300 text-purple-700 bg-purple-50 hover:bg-purple-100";

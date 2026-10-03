@@ -555,14 +555,14 @@ const RuptureDetailPage = () => {
       </Card>
 
       {isSemExpediente ? (
-        <div className="flex items-start gap-3 rounded-lg border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-          <AlertTriangle className="h-5 w-5 shrink-0 text-slate-500 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-3 text-sm text-slate-700 dark:text-slate-200">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-slate-500 dark:text-slate-400 mt-0.5" />
           <div>
             <p className="font-bold">Ensaio não realizado — sem expediente</p>
             <p className="mt-1">
               {(schedule as any).motivo_nao_realizado || "Não foi possível realizar o rompimento nessa data (sem expediente no laboratório)."}
             </p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               Esse ensaio fica de fora das médias, mínimos/máximos e da contagem de não conformidades dos relatórios.
             </p>
           </div>
@@ -851,7 +851,7 @@ const RuptureDetailPage = () => {
             onClick={() => setSemExpedienteModalOpen(true)}
             disabled={isCompleting || isFinalizing || isMarkingSemExpediente}
             variant="outline"
-            className="gap-2 border-slate-400 text-slate-600 hover:bg-slate-50"
+            className="gap-2 border-slate-400 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
           >
             <AlertTriangle className="h-4 w-4" />
             Sem Expediente
@@ -936,7 +936,7 @@ const RuptureDetailPage = () => {
       <Dialog open={semExpedienteModalOpen} onOpenChange={setSemExpedienteModalOpen}>
         <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-slate-600">
+            <DialogTitle className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
               <AlertTriangle className="h-5 w-5" /> Marcar Ensaio como Sem Expediente
             </DialogTitle>
             <DialogDescription>
@@ -944,9 +944,9 @@ const RuptureDetailPage = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="bg-slate-50 border border-slate-200 p-3 rounded-md flex items-start gap-3 mt-2">
-            <AlertTriangle className="h-5 w-5 text-slate-500 mt-0.5 shrink-0" />
-            <div className="text-sm text-slate-700">
+          <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-3 rounded-md flex items-start gap-3 mt-2">
+            <AlertTriangle className="h-5 w-5 text-slate-500 dark:text-slate-400 mt-0.5 shrink-0" />
+            <div className="text-sm text-slate-700 dark:text-slate-200">
               <p className="font-bold">Este ensaio não entra nos relatórios de conformidade</p>
               <p className="mt-1 leading-snug">
                 Nenhuma força/resultado é gravado. O ensaio fica registrado como "Sem Expediente", fora das médias, mínimos/máximos e da contagem de não conformidades.

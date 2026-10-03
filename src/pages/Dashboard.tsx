@@ -68,7 +68,7 @@ const BRAND_RED_LIGHT  = "hsl(219, 70%, 78%)";  // azul claro
 const CustomBarTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-border bg-white shadow-lg px-4 py-3 text-sm min-w-[140px]">
+    <div className="rounded-lg border border-border bg-white dark:bg-card shadow-lg px-4 py-3 text-sm min-w-[140px]">
       <p className="font-bold text-foreground mb-2">{label}</p>
       {payload.map((p: any) => (
         <div key={p.name} className="flex items-center justify-between gap-4">
@@ -254,7 +254,7 @@ const Dashboard = () => {
             Controle Tecnológico &mdash; Concreart Matriz
           </p>
         </div>
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 shadow-sm">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-white dark:bg-card px-3 py-2 shadow-sm">
           <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
           <span className="text-xs font-medium text-muted-foreground capitalize">{dateStr}</span>
         </div>
@@ -424,7 +424,7 @@ const Dashboard = () => {
                 content={({ active, payload, label }) => {
                   if (!active || !payload?.length) return null;
                   return (
-                    <div className="rounded-lg border border-border bg-white shadow-lg px-4 py-3 text-sm min-w-[160px]">
+                    <div className="rounded-lg border border-border bg-white dark:bg-card shadow-lg px-4 py-3 text-sm min-w-[160px]">
                       <p className="font-bold text-foreground mb-2">{label}</p>
                       {payload.map((p: any) => (
                         <div key={p.name} className="flex items-center justify-between gap-4">

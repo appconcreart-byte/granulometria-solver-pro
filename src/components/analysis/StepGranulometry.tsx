@@ -452,7 +452,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
             onClick={() => setCamadaAtiva("base")}
             className={cn(
               "px-4 py-1.5 text-[11px] font-black tracking-widest uppercase rounded-full transition-all flex items-center gap-2",
-              camadaAtiva === "base" ? "bg-white text-primary shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              camadaAtiva === "base" ? "bg-white dark:bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             )}
           >
             <Database className="h-3.5 w-3.5" /> CAMADA BASE
@@ -462,7 +462,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
             onClick={() => setCamadaAtiva("face")}
             className={cn(
               "px-4 py-1.5 text-[11px] font-black tracking-widest uppercase rounded-full transition-all flex items-center gap-2",
-              camadaAtiva === "face" ? "bg-white text-primary shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              camadaAtiva === "face" ? "bg-white dark:bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             )}
           >
             <Database className="h-3.5 w-3.5" /> CAMADA FACE
@@ -484,7 +484,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
 
         <Button 
           onClick={() => setIsDnaOpen(true)}
-          className="bg-slate-900 hover:bg-slate-800 text-white rounded-full text-[11px] font-black tracking-widest px-6 h-9 gap-2"
+          className="bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-full text-[11px] font-black tracking-widest px-6 h-9 gap-2"
         >
           <Dna className="w-4 h-4" />
           COMBINAR DNA
@@ -758,7 +758,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
                     onClick={() => setUnidadeAtiva("pct")}
                     className={cn(
                       "px-3 py-1 text-[10px] font-black rounded-full transition-all flex items-center gap-1",
-                      unidadeAtiva === "pct" ? "bg-white text-destructive shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      unidadeAtiva === "pct" ? "bg-white dark:bg-card text-destructive shadow-sm" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     %
@@ -768,7 +768,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
                     onClick={() => setUnidadeAtiva("kg")}
                     className={cn(
                       "px-3 py-1 text-[10px] font-black rounded-full transition-all flex items-center gap-1",
-                      unidadeAtiva === "kg" ? "bg-white text-destructive shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      unidadeAtiva === "kg" ? "bg-white dark:bg-card text-destructive shadow-sm" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     <Database className="h-3 w-3" /> KG
@@ -797,7 +797,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
                 {materials.map((m, i) => (
                   <div
                     key={m.material_id}
-                    className="group relative rounded-xl border border-destructive/20 bg-white p-4 transition-all hover:border-destructive hover:shadow-md"
+                    className="group relative rounded-xl border border-destructive/20 bg-white dark:bg-card p-4 transition-all hover:border-destructive hover:shadow-md"
                   >
                     {/* Nome do material e valor */}
                     <div className="flex gap-3 items-start mb-6">
@@ -973,7 +973,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
                 </div>
 
                 {/* Gráfico */}
-                <div className="mt-2 border rounded-xl overflow-hidden bg-white/50 relative h-[320px]">
+                <div className="mt-2 border rounded-xl overflow-hidden bg-white/50 dark:bg-card/50 relative h-[320px]">
                   <div className="absolute inset-0 pt-4 pb-2">
                     <GranulometryChart curveResults={curveResultsParaGrafico} hasLimits={!!(limits?.length)} tipoDosagem={tipoDosagem} compact />
                   </div>
@@ -1014,7 +1014,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
                       ? "bg-muted/50 border-transparent opacity-60 cursor-not-allowed" // Já está na mistura
                       : isSelectedInDraft
                         ? "bg-primary/5 border-primary shadow-sm" // Selecionado agora
-                        : "bg-white border-border hover:border-primary/50 hover:shadow-md" // Disponível
+                        : "bg-white dark:bg-card border-border hover:border-primary/50 hover:shadow-md" // Disponível
                   )}
                   onClick={() => {
                     if (!isAlreadyInMixture) {
@@ -1211,7 +1211,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
                 key={item.id}
                 className={cn(
                   "flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer",
-                  data.dna_selecionado === item.id ? "bg-primary/5 border-primary shadow-sm" : "bg-white border-border hover:border-primary hover:bg-accent/10"
+                  data.dna_selecionado === item.id ? "bg-primary/5 border-primary shadow-sm" : "bg-white dark:bg-card border-border hover:border-primary hover:bg-accent/10"
                 )}
                 onClick={() => handleSelectDna(item.id)}
               >
