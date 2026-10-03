@@ -71,7 +71,7 @@ const LoginPage = () => {
         <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-primary via-primary/60 to-transparent" />
 
         <div className="relative z-10 max-w-sm text-center space-y-6">
-          <img src={logoImg} alt="Lajeforro" className="h-16 w-auto object-contain mx-auto" />
+          <img src={logoImg} alt="Lajeforro" className="h-28 w-auto object-contain mx-auto" />
           <div className="space-y-3">
             <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">
               Controle Tecnológico<br />de Qualidade
@@ -103,7 +103,7 @@ const LoginPage = () => {
 
           {/* Mobile logo only */}
           <div className="lg:hidden text-center">
-            <img src={logoImg} alt="Lajeforro" className="h-12 w-auto object-contain mx-auto mb-2" />
+            <img src={logoImg} alt="Lajeforro" className="h-24 w-auto object-contain mx-auto mb-2" />
           </div>
 
           {/* Header */}

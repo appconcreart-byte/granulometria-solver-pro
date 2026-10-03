@@ -86,7 +86,7 @@ export function AppSidebar() {
             <img
               src={logoImg}
               alt="Lajeforro Laboratório"
-              className={collapsed ? "h-7 w-7 object-contain" : "h-10 w-auto object-contain"}
+              className={collapsed ? "h-8 w-8 object-contain" : "h-20 w-auto object-contain"}
             />
           </div>
           {!collapsed && (
