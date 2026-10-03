@@ -776,7 +776,7 @@ const RuptureDetailPage = () => {
             </div>
             <ResponsiveContainer width="100%" height={320}>
               <ScatterChart margin={{ top: 20, right: 30, left: 10, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis type="number" dataKey="peso" name="Peso (kg)" unit="kg" tick={{ fontSize: 14 }} label={{ value: 'Peso (kg)', position: 'insideBottom', offset: -5, fontWeight: 'bold', fontSize: 16 }} />
                 <YAxis type="number" dataKey="resistencia" name="Resistência (MPa)" unit="MPa" tick={{ fontSize: 14 }} label={{ value: 'Resistência (MPa)', angle: -90, position: 'insideLeft', fontWeight: 'bold', fontSize: 16 }} />
                 <Tooltip 
@@ -789,7 +789,7 @@ const RuptureDetailPage = () => {
                   labelFormatter={() => ''}
                 />
                 <Legend verticalAlign="top" height={36} />
-                <Scatter name="Amostras" data={scatterData} fill="#0f2548" shape="circle" line={{ stroke: '#0f2548', strokeWidth: 2 }} legendType="circle" />
+                <Scatter name="Amostras" data={scatterData} fill="hsl(var(--chart-primary))" shape="circle" line={{ stroke: 'hsl(var(--chart-primary))', strokeWidth: 2 }} legendType="circle" />
               </ScatterChart>
             </ResponsiveContainer>
           </>
@@ -804,7 +804,7 @@ const RuptureDetailPage = () => {
         {pesoPorCiclo.length > 0 ? (
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={pesoPorCiclo} margin={{ top: 20, right: 30, left: 10, bottom: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="ciclo" name="Ciclo (dias)" unit="dias" tick={{ fontSize: 14 }} label={{ value: 'Tempo de Ciclo (dias)', position: 'insideBottom', offset: -5, fontWeight: 'bold', fontSize: 16 }} />
               <YAxis dataKey="peso_medio" name="Peso Médio (kg)" unit="kg" tick={{ fontSize: 14 }} label={{ value: 'Peso Médio (kg)', angle: -90, position: 'insideLeft', fontWeight: 'bold', fontSize: 16 }} />
               <Tooltip formatter={(value: any, name: any) => [`${value}`, name === 'ciclo' ? 'Ciclo (dias)' : 'Peso Médio (kg)']} />

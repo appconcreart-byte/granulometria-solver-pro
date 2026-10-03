@@ -50,6 +50,7 @@
     /* Chart palette — derived from logo red */
     --chart-primary: 217 66% 17%;
     --chart-primary-light: 220 64% 53%;
+    --chart-primary-soft: 219 70% 78%;
     --chart-amber: 28 90% 52%;
     --chart-green: 152 60% 42%;
     --chart-slate: 215 13% 65%;
@@ -93,6 +94,10 @@
     --border: 217 40% 24%;
     --input: 217 40% 24%;
     --ring: 220 64% 53%;
+
+    --chart-primary: 219 76% 75%;
+    --chart-primary-light: 220 64% 53%;
+    --chart-primary-soft: 219 45% 38%;
 
     --success: 152 60% 42%;
     --success-foreground: 0 0% 100%;
