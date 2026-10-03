@@ -181,7 +181,7 @@ const LoginPage = () => {
           {/* Footer */}
           <div className="border-t border-slate-100 pt-6 text-center">
             <p className="text-[11px] text-slate-400 uppercase tracking-widest">
-              Acesso Restrito · Lajeforro Labs
+              Acesso Restrito · Concreart Labs
             </p>
             <p className="text-[10px] text-slate-300 mt-1">
               Em caso de problemas, contate o administrador do sistema.
