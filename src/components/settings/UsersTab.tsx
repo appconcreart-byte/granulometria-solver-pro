@@ -251,7 +251,7 @@ export function UsersTab() {
                 id="user-email"
                 type="email"
                 disabled={!!editingId}
-                placeholder="exemplo@lajeforro.com.br"
+                placeholder="exemplo@concreartms.com.br"
                 value={form.email}
                 onChange={(e) => setForm(p => ({ ...p, email: e.target.value }))}
               />

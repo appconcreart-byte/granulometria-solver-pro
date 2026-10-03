@@ -251,7 +251,7 @@ const Dashboard = () => {
             {greeting} 👋
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            Controle Tecnológico &mdash; Lajeforro Matriz
+            Controle Tecnológico &mdash; Concreart Matriz
           </p>
         </div>
         <div className="flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 shadow-sm">

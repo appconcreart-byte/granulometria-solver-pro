@@ -15,7 +15,7 @@ export function AppHeader() {
           </div>
           <div className="hidden md:flex flex-col leading-tight">
             <span className="text-sm font-medium">Admin</span>
-            <span className="text-xs text-muted-foreground">LAJEFORRO MATRIZ</span>
+            <span className="text-xs text-muted-foreground">CONCREART MATRIZ</span>
           </div>
         </div>
       </div>

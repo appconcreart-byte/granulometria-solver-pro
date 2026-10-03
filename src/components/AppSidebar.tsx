@@ -85,7 +85,7 @@ export function AppSidebar() {
           <div className="flex items-center gap-3">
             <img
               src={logoImg}
-              alt="Lajeforro Laboratório"
+              alt="Concreart Laboratório"
               className={collapsed ? "h-8 w-8 object-contain" : "h-20 w-auto object-contain"}
             />
           </div>
