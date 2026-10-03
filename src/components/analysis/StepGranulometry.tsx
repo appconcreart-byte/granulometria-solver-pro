@@ -598,7 +598,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
                               <button
                                 type="button"
                                 onClick={() => handleRemoveMaterial(mi)}
-                                className="h-4 w-4 rounded-full border border-destructive/40 text-destructive hover:bg-destructive hover:text-white flex items-center justify-center transition-colors"
+                                className="h-4 w-4 rounded-full border border-border text-muted-foreground hover:border-destructive hover:bg-destructive hover:text-white flex items-center justify-center transition-colors"
                                 title="Remover Material"
                               >
                                 <span className="text-[8px] leading-none font-bold">✕</span>
@@ -744,7 +744,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
           <Card className="border-transparent shadow-none bg-transparent">
             <CardHeader className="p-0 pb-4 flex flex-row items-center justify-between">
               <div className="flex items-center gap-3">
-                <Database className="w-5 h-5 text-destructive" />
+                <Database className="w-5 h-5 text-primary" />
                 <CardTitle className="text-xs font-black uppercase tracking-widest text-foreground">
                   PROPORÇÃO DA MISTURA
                 </CardTitle>
@@ -758,7 +758,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
                     onClick={() => setUnidadeAtiva("pct")}
                     className={cn(
                       "px-3 py-1 text-[10px] font-black rounded-full transition-all flex items-center gap-1",
-                      unidadeAtiva === "pct" ? "bg-white dark:bg-card text-destructive shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      unidadeAtiva === "pct" ? "bg-white dark:bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     %
@@ -768,7 +768,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
                     onClick={() => setUnidadeAtiva("kg")}
                     className={cn(
                       "px-3 py-1 text-[10px] font-black rounded-full transition-all flex items-center gap-1",
-                      unidadeAtiva === "kg" ? "bg-white dark:bg-card text-destructive shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      unidadeAtiva === "kg" ? "bg-white dark:bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     <Database className="h-3 w-3" /> KG
@@ -797,11 +797,11 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
                 {materials.map((m, i) => (
                   <div
                     key={m.material_id}
-                    className="group relative rounded-xl border border-destructive/20 bg-white dark:bg-card p-4 transition-all hover:border-destructive hover:shadow-md"
+                    className="group relative rounded-xl border border-primary/20 bg-white dark:bg-card p-4 transition-all hover:border-primary hover:shadow-md"
                   >
                     {/* Nome do material e valor */}
                     <div className="flex gap-3 items-start mb-6">
-                      <div className="w-6 h-6 rounded-full bg-destructive flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
                         <Dna className="w-3.5 h-3.5 text-white" />
                       </div>
                       <div className="flex-1">
@@ -811,7 +811,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
                         <p className="text-[10px] font-bold text-muted-foreground uppercase leading-tight tracking-tight mb-1">
                           {m.nome.split(" ").slice(2).join(" ")}
                         </p>
-                        <p className="text-sm font-black text-destructive tracking-tight">
+                        <p className="text-sm font-black text-primary tracking-tight">
                             {readOnly
                               ? `${(m.proporcao_kg ?? 0).toFixed(0)} kg`
                               : unidadeAtiva === "pct"
@@ -884,7 +884,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
                 </Button>
                 <Button
                   onClick={tipoDosagem === "WET_CASTING_PROTENDIDO" ? handleOptimizeLaje : handleOptimize}
-                  className="bg-destructive hover:bg-destructive/90 text-white text-[11px] font-black tracking-widest uppercase gap-2 h-10 px-6 rounded-full shadow-lg shadow-destructive/20"
+                  className="bg-primary hover:bg-primary/90 text-white text-[11px] font-black tracking-widest uppercase gap-2 h-10 px-6 rounded-full shadow-lg shadow-primary/20"
                 >
                   <Dna className="w-4 h-4" />
                   {tipoDosagem === "WET_CASTING_PROTENDIDO" ? "OTIMIZAR TRAÇO (LAJE PROTENDIDA)" : "OTIMIZAR TRAÇO (CENTRO DA FAIXA)"}
@@ -914,7 +914,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
 
         {/* Painel Direito: flutua via CSS puro */}
         <div className="xl:col-span-1 sticky top-24 z-10 transition-all duration-300">
-          <Card className="pt-4 shadow-sm border-destructive/10">
+          <Card className="pt-4 shadow-sm border-primary/10">
             <CardContent className="p-4 flex flex-col relative">
               <div>
                 <div className="flex items-start justify-between mb-2">
@@ -922,7 +922,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
                     <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
                       {tipoDosagem === "WET_CASTING_PROTENDIDO" ? "Curva Combinada — Concreto Estrutural Protendido" : "Curva Combinada"}
                     </p>
-                    <p className="text-4xl font-black text-destructive leading-none tracking-tighter">
+                    <p className="text-4xl font-black text-primary leading-none tracking-tighter">
                       {mfCombinado.toFixed(2)}
                     </p>
                     <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest pt-1">MF TOTAL</p>
@@ -939,8 +939,8 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
 
                 {/* Informações de erros se houver */}
                 {curvaStatus.peneiras_fora > 0 && (
-                  <div className="mb-4 mt-2 border-l-2 border-destructive pl-2 shrink-0">
-                    <p className="text-[10px] font-bold text-destructive">
+                  <div className="mb-4 mt-2 border-l-2 border-primary pl-2 shrink-0">
+                    <p className="text-[10px] font-bold text-primary">
                       {curvaStatus.peneiras_fora} peneira(s) fora
                     </p>
                   </div>
@@ -1174,7 +1174,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
                 </div>
                 <button
                   type="button"
-                  className="opacity-0 group-hover:opacity-100 h-7 w-7 rounded-full border border-destructive/40 text-destructive hover:bg-destructive hover:text-white flex items-center justify-center transition-all text-xs"
+                  className="opacity-0 group-hover:opacity-100 h-7 w-7 rounded-full border border-border text-muted-foreground hover:border-destructive hover:bg-destructive hover:text-white flex items-center justify-center transition-all text-xs"
                   title="Excluir preset"
                   onClick={(e) => {
                     e.stopPropagation();

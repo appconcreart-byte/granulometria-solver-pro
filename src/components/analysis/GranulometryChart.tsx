@@ -103,7 +103,7 @@ export function GranulometryChart({ curveResults, hasLimits, compact = false, ti
             dnAlvo: LEGENDA_ALVO_POR_TIPO[tipoDosagem],
           };
           const colorMap: Record<string, string> = {
-            acumulado: "text-destructive",
+            acumulado: "text-primary",
             dnAlvo: "text-amber-500",
           };
 
@@ -211,21 +211,21 @@ export function GranulometryChart({ curveResults, hasLimits, compact = false, ti
             />
           )}
 
-          {/* Layer 3 — Curva de Estudo (bold red) */}
+          {/* Layer 3 — Curva de Estudo (bold primary) */}
           <Line
             type="monotone"
             dataKey="acumulado"
-            stroke="hsl(var(--destructive))"
+            stroke="hsl(var(--chart-primary))"
             strokeWidth={3}
             dot={{
               r: 4,
-              fill: "hsl(var(--destructive))",
+              fill: "hsl(var(--chart-primary))",
               stroke: "hsl(var(--card))",
               strokeWidth: 2,
             }}
             activeDot={{
               r: 6,
-              fill: "hsl(var(--destructive))",
+              fill: "hsl(var(--chart-primary))",
               stroke: "hsl(var(--card))",
               strokeWidth: 2,
             }}
@@ -264,7 +264,7 @@ export function GranulometryChart({ curveResults, hasLimits, compact = false, ti
               {LEGENDA_ALVO_POR_TIPO[tipoDosagem]}
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-4 h-0.5 bg-destructive rounded-full" />
+              <span className="w-4 h-0.5 bg-primary rounded-full" />
               Curva de Estudo
             </div>
           </div>
