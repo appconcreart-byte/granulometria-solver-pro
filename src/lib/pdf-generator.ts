@@ -26,7 +26,7 @@ const STATUS_PDF_COLORS: Record<string, [number, number, number]> = {
   rascunho: [140, 140, 140],
   em_analise: [59, 130, 246],
   aprovado: [34, 139, 34],
-  liberado_producao: [153, 27, 27],
+  liberado_producao: [15, 37, 72],
   arquivado: [140, 140, 140],
 };
 
@@ -60,10 +60,10 @@ export function generateAnalysisPDF(data: AnalysisFormData, options?: PDFOptions
   };
 
   // ── HEADER ──
-  doc.setFillColor(153, 27, 27); // primary red
+  doc.setFillColor(15, 37, 72); // primary navy
   doc.rect(0, 0, pageWidth, 28, "F");
   addText("GRANULOMETRIA SOLVER PRO", margin, 12, { size: 16, bold: true, color: [255, 255, 255] });
-  addText("Relatório de Análise Técnica", margin, 19, { size: 10, color: [255, 220, 220] });
+  addText("Relatório de Análise Técnica", margin, 19, { size: 10, color: [200, 215, 240] });
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(255, 255, 255);
@@ -82,7 +82,7 @@ export function generateAnalysisPDF(data: AnalysisFormData, options?: PDFOptions
   y += 14;
 
   // ── IDENTIFICAÇÃO ──
-  addText("1. IDENTIFICAÇÃO", margin, y, { size: 12, bold: true, color: [153, 27, 27] });
+  addText("1. IDENTIFICAÇÃO", margin, y, { size: 12, bold: true, color: [15, 37, 72] });
   y += 2;
   addLine(y);
   y += 6;
@@ -111,7 +111,7 @@ export function generateAnalysisPDF(data: AnalysisFormData, options?: PDFOptions
 
   // ── GRANULOMETRIA ──
   checkNewPage(60);
-  addText("2. CURVA GRANULOMÉTRICA", margin, y, { size: 12, bold: true, color: [153, 27, 27] });
+  addText("2. CURVA GRANULOMÉTRICA", margin, y, { size: 12, bold: true, color: [15, 37, 72] });
   y += 2;
   addLine(y);
   y += 6;
@@ -169,7 +169,7 @@ export function generateAnalysisPDF(data: AnalysisFormData, options?: PDFOptions
 
   // ── DOSAGEM ──
   checkNewPage(50);
-  addText("3. DOSAGEM E MATERIAIS POR BATELADA", margin, y, { size: 12, bold: true, color: [153, 27, 27] });
+  addText("3. DOSAGEM E MATERIAIS POR BATELADA", margin, y, { size: 12, bold: true, color: [15, 37, 72] });
   y += 2;
   addLine(y);
   y += 6;
@@ -242,7 +242,7 @@ export function generateAnalysisPDF(data: AnalysisFormData, options?: PDFOptions
 
   // ── RESUMO TÉCNICO ──
   checkNewPage(30);
-  addText("4. RESUMO TÉCNICO", margin, y, { size: 12, bold: true, color: [153, 27, 27] });
+  addText("4. RESUMO TÉCNICO", margin, y, { size: 12, bold: true, color: [15, 37, 72] });
   y += 2;
   addLine(y);
   y += 6;
