@@ -67,7 +67,7 @@ const LoginPage = () => {
         {/* Top-left accent bar */}
         <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-primary via-primary/60 to-transparent" />
 
-        <div className="relative z-10 max-w-sm text-center space-y-6 rounded-2xl bg-white/85 backdrop-blur-md shadow-xl p-8">
+        <div className="relative z-10 max-w-sm text-center space-y-6 rounded-2xl bg-white/85 backdrop-blur-md shadow-xl p-8 animate-in fade-in slide-in-from-bottom-4 duration-1000" style={{ animationDelay: "3s", animationFillMode: "backwards" }}>
           <img src={logoImg} alt="Concreart" className="h-44 w-auto object-contain mx-auto -mb-2" />
           <div className="space-y-3">
             <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">
