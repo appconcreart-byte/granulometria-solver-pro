@@ -31,10 +31,10 @@ import { useMaterials } from "@/hooks/api/useMaterials";
 import { StatusBadge } from "@/components/StatusBadge";
 import { calcularCustoTracoCompleto } from "@/lib/utils";
 
-const BRAND_RED = "hsl(0, 80%, 38%)";
-const BRAND_RED_MED = "hsl(0, 68%, 56%)";
-const BRAND_RED_LIGHT = "hsl(0, 65%, 76%)";
-const PIE_COLORS = [BRAND_RED, BRAND_RED_MED, BRAND_RED_LIGHT, "hsl(0, 50%, 85%)", "hsl(0, 40%, 90%)"];
+const BRAND_RED = "hsl(217, 66%, 17%)";
+const BRAND_RED_MED = "hsl(220, 64%, 53%)";
+const BRAND_RED_LIGHT = "hsl(219, 70%, 78%)";
+const PIE_COLORS = [BRAND_RED, BRAND_RED_MED, BRAND_RED_LIGHT, "hsl(219, 58%, 88%)", "hsl(219, 40%, 93%)"];
 
 const CostReportPage = () => {
   const { analyses, isLoading: loadingAnalyses } = useAnalyses();
@@ -220,7 +220,7 @@ const CostReportPage = () => {
           <CardContent className="pt-2">
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={costMetrics.mensais} barGap={4}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(0,10%,93%)" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(214,14%,93%)" vertical={false} />
                 <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis fontSize={11} tickLine={false} axisLine={false} width={60}
                   tickFormatter={(v) => v > 0 ? `R$${v}` : "0"} />
@@ -236,7 +236,7 @@ const CostReportPage = () => {
                       </div>
                     );
                   }}
-                  cursor={{ fill: "hsl(0,10%,96%)" }}
+                  cursor={{ fill: "hsl(214,29%,96%)" }}
                 />
                 <Bar dataKey="totalBatelada" fill={BRAND_RED} radius={[4, 4, 0, 0]} maxBarSize={40} />
               </BarChart>

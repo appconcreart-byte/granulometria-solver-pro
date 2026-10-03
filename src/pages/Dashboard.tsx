@@ -60,9 +60,9 @@ function getFormattedDate(): string {
 }
 
 // ── Paleta da logo ────────────────────────────────────────────
-const BRAND_RED        = "hsl(0, 80%, 38%)";  // escuro — cor principal da logo
-const BRAND_RED_MED    = "hsl(0, 68%, 56%)";  // médio
-const BRAND_RED_LIGHT  = "hsl(0, 65%, 76%)";  // claro
+const BRAND_RED        = "hsl(217, 66%, 17%)";  // marinho — cor principal Concreart
+const BRAND_RED_MED    = "hsl(220, 64%, 53%)";  // azul vivo
+const BRAND_RED_LIGHT  = "hsl(219, 70%, 78%)";  // azul claro
 
 // ── Tooltip customizado ────────────────────────────────────────
 const CustomBarTooltip = ({ active, payload, label }: any) => {
@@ -321,10 +321,10 @@ const Dashboard = () => {
           <CardContent className="pt-2">
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={realBarData} barGap={4} barCategoryGap="30%">
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(0,10%,93%)" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(214,14%,93%)" vertical={false} />
                 <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "hsl(0,0%,50%)" }} />
                 <YAxis fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "hsl(0,0%,50%)" }} width={32} />
-                <Tooltip content={<CustomBarTooltip />} cursor={{ fill: "hsl(0,10%,96%)" }} />
+                <Tooltip content={<CustomBarTooltip />} cursor={{ fill: "hsl(214,29%,96%)" }} />
                 <Bar dataKey="previsto" fill={BRAND_RED} radius={[4, 4, 0, 0]} maxBarSize={28} />
               </BarChart>
             </ResponsiveContainer>
@@ -416,7 +416,7 @@ const Dashboard = () => {
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={costMetrics.mensais} barGap={4} barCategoryGap="25%">
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(0,10%,93%)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(214,14%,93%)" vertical={false} />
               <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "hsl(0,0%,50%)" }} />
               <YAxis fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "hsl(0,0%,50%)" }} width={50}
                 tickFormatter={(v) => v > 0 ? `R$${v}` : "0"} />
@@ -440,7 +440,7 @@ const Dashboard = () => {
                     </div>
                   );
                 }}
-                cursor={{ fill: "hsl(0,10%,96%)" }}
+                cursor={{ fill: "hsl(214,29%,96%)" }}
               />
               <Bar dataKey="totalBatelada" fill={BRAND_RED} radius={[4, 4, 0, 0]} maxBarSize={36} />
               <Bar dataKey="batchCount" fill={BRAND_RED_LIGHT} radius={[4, 4, 0, 0]} maxBarSize={36} />

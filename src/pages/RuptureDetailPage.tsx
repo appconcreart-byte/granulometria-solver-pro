@@ -789,7 +789,7 @@ const RuptureDetailPage = () => {
                   labelFormatter={() => ''}
                 />
                 <Legend verticalAlign="top" height={36} />
-                <Scatter name="Amostras" data={scatterData} fill="#d7263d" shape="circle" line={{ stroke: '#d7263d', strokeWidth: 2 }} legendType="circle" />
+                <Scatter name="Amostras" data={scatterData} fill="#0f2548" shape="circle" line={{ stroke: '#0f2548', strokeWidth: 2 }} legendType="circle" />
               </ScatterChart>
             </ResponsiveContainer>
           </>
