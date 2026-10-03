@@ -15,6 +15,8 @@ import {
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import logoImg from "@/assets/logo-lajeforro.png";
+import logoDark from "@/assets/logo-concreart-escuro.png";
+import { useTheme } from "next-themes";
 import type { UserRole } from "@/store/useAppStore";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -60,6 +62,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
 export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
+  const { resolvedTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
@@ -84,7 +87,7 @@ export function AppSidebar() {
         <div className={collapsed ? "flex items-center justify-center" : "flex items-center justify-between"}>
           <div className="flex items-center gap-3">
             <img
-              src={logoImg}
+              src={resolvedTheme === "dark" ? logoDark : logoImg}
               alt="Concreart Laboratório"
               className={collapsed ? "h-8 w-8 object-contain" : "h-20 w-auto object-contain"}
             />
