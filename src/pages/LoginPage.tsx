@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, LogIn, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
 import logoImg from "@/assets/logo-lajeforro.png";
+import fachadaImg from "@/assets/fachada-empresa.jpeg";
 
 const ROLE_HOME: Record<string, string> = {
   ADMIN: "/",
@@ -60,17 +61,13 @@ const LoginPage = () => {
     <div className="min-h-screen flex relative overflow-hidden bg-slate-50">
       {/* Left panel — brand */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-white border-r border-slate-100 flex-col items-center justify-center p-12">
-        {/* Subtle grid pattern */}
-        <div
-          className="absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M0 0h1v40H0zm40 0h-1v40h1zM0 0v1h40V0zm0 40v-1h40v1z'/%3E%3C/g%3E%3C/svg%3E")`,
-          }}
-        />
+        {/* Background photo */}
+        <img src={fachadaImg} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-primary/30 via-transparent to-transparent" />
         {/* Top-left accent bar */}
         <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-primary via-primary/60 to-transparent" />
 
-        <div className="relative z-10 max-w-sm text-center space-y-6">
+        <div className="relative z-10 max-w-sm text-center space-y-6 rounded-2xl bg-white/85 backdrop-blur-md shadow-xl p-8">
           <img src={logoImg} alt="Concreart" className="h-44 w-auto object-contain mx-auto -mb-2" />
           <div className="space-y-3">
             <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">
@@ -92,7 +89,7 @@ const LoginPage = () => {
         </div>
 
         {/* Bottom version tag */}
-        <div className="absolute bottom-6 text-[11px] text-slate-400">
+        <div className="absolute bottom-6 rounded-full bg-white/85 backdrop-blur-md px-3 py-1 text-[11px] text-slate-600">
           v1.0 · Concreart Laboratório
         </div>
       </div>
