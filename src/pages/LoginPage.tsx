@@ -71,7 +71,7 @@ const LoginPage = () => {
         <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-primary via-primary/60 to-transparent" />
 
         <div className="relative z-10 max-w-sm text-center space-y-6">
-          <img src={logoImg} alt="Lajeforro" className="h-28 w-auto object-contain mx-auto" />
+          <img src={logoImg} alt="Lajeforro" className="h-36 w-auto object-contain mx-auto mb-10" />
           <div className="space-y-3">
             <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">
               Controle Tecnológico<br />de Qualidade
