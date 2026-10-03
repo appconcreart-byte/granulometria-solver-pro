@@ -93,7 +93,7 @@ const LoginPage = () => {
 
         {/* Bottom version tag */}
         <div className="absolute bottom-6 text-[11px] text-slate-400">
-          v1.0 · Lajeforro Laboratório
+          v1.0 · Concreart Laboratório
         </div>
       </div>
 
