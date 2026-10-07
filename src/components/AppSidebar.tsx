@@ -11,10 +11,13 @@ import {
   LogOut,
   DollarSign,
   BarChart2,
+  Gauge,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import logoImg from "@/assets/logo-lajeforro.png";
+import logoDark from "@/assets/logo-concreart-escuro.png";
+import { useTheme } from "next-themes";
 import type { UserRole } from "@/store/useAppStore";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -37,6 +40,7 @@ const mainItems: NavItem[] = [
   { title: "Métricas", url: "/", icon: LayoutDashboard, allowedRoles: ["ADMIN", "PRODUCAO", "VENDAS", "GERENTE", "LABORATORIO"], exact: true },
   { title: "Análises", url: "/analyses", icon: FlaskConical, allowedRoles: ["ADMIN", "VENDAS", "GERENTE", "LABORATORIO"] },
   { title: "Produção", url: "/production", icon: Factory, allowedRoles: ["ADMIN", "PRODUCAO", "VENDAS", "GERENTE"] },
+  { title: "Métricas de Pista", url: "/pista-metrics", icon: Gauge, allowedRoles: ["ADMIN", "PRODUCAO", "VENDAS", "GERENTE"] },
   { title: "Rompimentos", url: "/ruptures", icon: Hammer, allowedRoles: ["ADMIN", "PRODUCAO", "VENDAS", "GERENTE", "LABORATORIO"] },
   { title: "Traços Padrão", url: "/standard-traces", icon: Boxes, allowedRoles: ["ADMIN", "LABORATORIO"] },
   { title: "Granulometria", url: "/granulometria", icon: BarChart2, allowedRoles: ["ADMIN", "LABORATORIO", "GERENTE"] },
@@ -60,6 +64,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
 export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
+  const { resolvedTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
@@ -84,9 +89,9 @@ export function AppSidebar() {
         <div className={collapsed ? "flex items-center justify-center" : "flex items-center justify-between"}>
           <div className="flex items-center gap-3">
             <img
-              src={logoImg}
-              alt="Lajeforro Laboratório"
-              className={collapsed ? "h-7 w-7 object-contain" : "h-10 w-auto object-contain"}
+              src={resolvedTheme === "dark" ? logoDark : logoImg}
+              alt="Concreart Laboratório"
+              className={collapsed ? "h-8 w-8 object-contain" : "h-20 w-auto object-contain"}
             />
           </div>
           {!collapsed && (

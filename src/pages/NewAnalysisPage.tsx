@@ -45,11 +45,11 @@ class FormErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="p-8 text-left bg-red-50 text-red-600 rounded mt-10 w-full border border-red-200">
+        <div className="p-8 text-left bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 rounded mt-10 w-full border border-red-200 dark:border-red-900">
           <h2 className="font-bold text-xl mb-4">
             Erro ao renderizar o formulário.
           </h2>
-          <pre className="text-xs bg-white p-4 overflow-auto border-red-100 whitespace-pre-wrap">
+          <pre className="text-xs bg-white dark:bg-card p-4 overflow-auto border-red-100 dark:border-red-900 whitespace-pre-wrap">
             {String(this.state.error?.stack || this.state.error)}
           </pre>
         </div>

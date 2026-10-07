@@ -296,9 +296,9 @@ export function AnalyticsPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-              <div className="text-2xl font-bold text-red-600">{alertStatus.high}</div>
-              <p className="text-sm text-red-700">Crítico - Rompimentos Atrasados</p>
+            <div className="p-4 bg-red-50 dark:bg-red-950/40 rounded-lg border border-red-200 dark:border-red-900">
+              <div className="text-2xl font-bold text-red-600 dark:text-red-300">{alertStatus.high}</div>
+              <p className="text-sm text-red-700 dark:text-red-300">Crítico - Rompimentos Atrasados</p>
             </div>
             <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
               <div className="text-2xl font-bold text-yellow-600">{alertStatus.medium}</div>

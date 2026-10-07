@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import {
   ArrowLeft,
-  Printer,
+  Download,
   FileText,
   CheckCircle2,
   FlaskConical,
@@ -24,7 +24,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { TIPOS_ANALISE, getLimitesPadrao, getTipoDosagem } from "@/lib/analysis-data";
-import { generateElementPDF } from "@/lib/pdf-generator";
+import { generateOnePagePDF } from "@/lib/pdf-generator";
 import { useQualityReportStorage } from "@/hooks/useQualityReportStorage";
 import { statusConfig } from "@/components/StatusBadge";
 import {
@@ -46,6 +46,60 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
+
+type ReportMode = "empresa" | "cliente";
+
+// html2canvas desloca o texto de pílulas com inline-flex + border-radius.
+// No PDF usamos um bloco simples: altura fixa, line-height igual à altura
+// e cores sólidas (sem transparência), para o texto ficar centralizado.
+function PdfPill({ label, bg, fg, border, small }: { label: string; bg: string; fg: string; border: string; small?: boolean }) {
+  // SVG inline: o navegador rasteriza o desenho inteiro de uma vez, então texto e
+  // contorno nunca se desencontram (o que acontecia com HTML/CSS no html2canvas).
+  const h = small ? 18 : 24;
+  const fontSize = small ? 9 : 12;
+  const w = Math.ceil(label.length * fontSize * (small ? 0.72 : 0.62) + 24);
+  return (
+    <svg
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: "inline-block", verticalAlign: "top" }}
+    >
+      <rect x="0.5" y="0.5" width={w - 1} height={h - 1} rx={(h - 1) / 2} ry={(h - 1) / 2} fill={bg} stroke={border} strokeWidth="1" />
+      <text
+        x={w / 2}
+        y={h / 2}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fill={fg}
+        fontFamily="Arial, Helvetica, sans-serif"
+        fontSize={fontSize}
+        fontWeight={small ? 700 : 500}
+      >
+        {label}
+      </text>
+    </svg>
+  );
+}
+
+const PDF_STATUS_PILL: Record<string, { bg: string; fg: string; border: string }> = {
+  success: { bg: "#e3f6ec", fg: "#16a34a", border: "#a7dfc0" },
+  warning: { bg: "#fdf0dc", fg: "#d97706", border: "#f2cd96" },
+  danger: { bg: "#fbe4e4", fg: "#dc2626", border: "#f0b3b3" },
+  info: { bg: "#e3effc", fg: "#2563eb", border: "#b0cdf2" },
+  amber: { bg: "#fef3c7", fg: "#b45309", border: "#fcd34d" },
+  neutral: { bg: "#f1f5f9", fg: "#64748b", border: "#cbd5e1" },
+};
+
+function pdfStatusTone(status: string): string {
+  if (["aprovado", "aprovado_sem_ensaio", "conforme", "concluido"].includes(status)) return "success";
+  if (["aprovado_com_ressalva", "pendente"].includes(status)) return "warning";
+  if (["reprovado", "nao_conforme", "atrasado"].includes(status)) return "danger";
+  if (["em_analise", "em_andamento", "aguardando_rompimentos", "liberado_producao"].includes(status)) return "info";
+  if (status === "liberado_antecipado") return "amber";
+  return "neutral";
+}
 
 const tipoLabelMap: Record<string, string> = {
   bloco: "Bloco Estrutural",
@@ -125,7 +179,9 @@ const QualityReportPage = () => {
   const { profile } = useAuth();
   const { uploadReportPDF } = useQualityReportStorage();
   const reportRef = useRef<HTMLDivElement>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
   const [isSendingWhatsapp, setIsSendingWhatsapp] = useState(false);
+  const [exportModo, setExportModo] = useState<ReportMode | null>(null);
 
   const batch = data?.batch as any;
   const analysis = batch?.analyses as any;
@@ -251,12 +307,39 @@ const QualityReportPage = () => {
 
   const analysisTypeMeta = TIPOS_ANALISE.find((t) => t.value === analysis.tipo);
 
+  // Renderiza a versão A4 do laudo fora da tela, captura em uma única folha e limpa.
+  const captureReportPdf = async (modo: ReportMode): Promise<Blob> => {
+    setExportModo(modo);
+    try {
+      // aguarda montagem e a animação dos gráficos terminarem
+      await new Promise((r) => setTimeout(r, 1200));
+      if (!exportRef.current) throw new Error("Laudo não renderizado");
+      return await generateOnePagePDF(exportRef.current);
+    } finally {
+      setExportModo(null);
+    }
+  };
+
+  const handleDownloadPdf = async (modo: ReportMode) => {
+    try {
+      const blob = await captureReportPdf(modo);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Laudo_${batch.batch_code}_${modo}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Erro ao gerar o PDF do laudo.");
+    }
+  };
+
   const handleSendWhatsapp = async () => {
-    if (!reportRef.current || !profile?.organization_id) return;
+    if (!profile?.organization_id) return;
     setIsSendingWhatsapp(true);
     try {
-      const blob = await generateElementPDF(reportRef.current);
-      const filename = `${batch.batch_code}.pdf`;
+      const blob = await captureReportPdf("cliente");
+      const filename = `${batch.batch_code}_cliente.pdf`;
       const publicUrl = await uploadReportPDF(batch.id, profile.organization_id, blob, filename);
       if (!publicUrl) {
         toast.error("Não foi possível gerar o link do laudo para envio.");
@@ -269,7 +352,7 @@ const QualityReportPage = () => {
 
       const linhas = [
         `*Laudo Técnico — ${identity.nome || "Granulometria Solver Pro"}*`,
-        `Produto: ${analysis.nome || analysisTypeMeta?.label || analysis.tipo}`,
+        `Produto: ${analysisTypeMeta?.label || analysis.tipo}`,
         `Lote: ${batch.batch_code}`,
         `Status: ${statusLabel}`,
         `Data de Produção: ${dataProducao}`,
@@ -287,6 +370,274 @@ const QualityReportPage = () => {
     }
   };
 
+  const renderReport = (modo: ReportMode, ref: React.Ref<HTMLDivElement> | undefined, exporting: boolean) => {
+    const cliente = modo === "cliente";
+    return (
+          <Card ref={ref} className="max-w-[1000px] mx-auto shadow-xl border-t-8 border-t-primary rounded-xl print:shadow-none print:border-none print:max-w-full">
+            <CardContent className={exporting ? "p-6 space-y-5" : "p-10 space-y-10"}>
+              {/* Header */}
+              <div className="flex justify-between items-start" data-pdf-avoid-break>
+                <div className="space-y-1">
+                  <h1 className="text-3xl font-black uppercase tracking-tighter text-foreground flex items-center gap-2">
+                    <FlaskConical className="h-8 w-8 text-primary" />
+                    {identity.nome || "Laudo Técnico"}
+                  </h1>
+                  <div className="flex flex-col gap-0.5 mt-2">
+                    <p className="text-sm font-bold text-muted-foreground uppercase opacity-70">
+                      {identity.cnpj ? `CNPJ: ${identity.cnpj} • ` : ""}Laudo Técnico
+                    </p>
+                    {identity.endereco && (
+                      <p className="text-[10px] font-medium text-muted-foreground opacity-60">{identity.endereco}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground uppercase font-black">Lote de Produção</p>
+                  <p className={cn("text-2xl font-black text-primary", exporting ? "leading-snug pb-1" : "leading-tight")}>{batch.batch_code}</p>
+                  <div className={exporting ? "mt-3" : "mt-1"}>
+                      {exporting ? (
+                        <PdfPill
+                          label={statusConfig[batch.status as keyof typeof statusConfig]?.label ?? batch.status}
+                          {...PDF_STATUS_PILL[pdfStatusTone(batch.status)]}
+                        />
+                      ) : (
+                        <StatusBadge status={batch.status} />
+                      )}
+                    </div>
+                </div>
+              </div>
+
+              <Separator className="opacity-50" />
+
+              {batch.status === "liberado_antecipado" && (
+                <div className="bg-amber-500/10 border-l-4 border-amber-500 rounded-r-lg p-6 flex items-start gap-4" data-pdf-avoid-break>
+                  <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                  <div className="space-y-1">
+                    <h3 className="font-black text-sm uppercase tracking-wider text-amber-700">Aprovação Técnica Excepcional</h3>
+                    <p className="text-sm font-semibold text-amber-900/80 leading-relaxed italic">
+                      {cliente ? "Lote liberado antecipadamente por critério técnico." : (batch.notas ?? "Lote liberado antecipadamente por critério técnico.")}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {batch.status === "aprovado_com_ressalva" && (
+                <div className="bg-warning/10 border-l-4 border-warning rounded-r-lg p-6 flex items-start gap-4" data-pdf-avoid-break>
+                  <AlertTriangle className="h-5 w-5 text-warning mt-0.5 shrink-0" />
+                  <div className="space-y-1">
+                    <h3 className="font-black text-sm uppercase tracking-wider text-warning">Aprovado com Ressalva</h3>
+                    <p className="text-sm font-semibold text-warning/90 leading-relaxed italic">
+                      {cliente
+                        ? "Este lote foi aprovado. 1 ensaio de rompimento (resistência) apresentou resultado fora da conformidade."
+                        : "Este lote foi aprovado, porém 1 ensaio de rompimento (resistência) apresentou resultado fora da conformidade. A ressalva não compromete a liberação do lote, mas indica um ponto de atenção pontual no processo."}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Dados Gerais */}
+              <div className={cn("grid gap-4 md:gap-8", exporting ? (cliente ? "grid-cols-2" : "grid-cols-3") : "grid-cols-2 md:grid-cols-3")} data-pdf-avoid-break>
+                {cliente ? (
+                  <div className="space-y-1">
+                    <p className="text-[10px] uppercase font-black text-muted-foreground">Produto</p>
+                    <p className="text-sm font-bold">{analysisTypeMeta?.label || analysis.tipo}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="text-[10px] uppercase font-black text-muted-foreground">Produto / Análise</p>
+                    <p className="text-sm font-bold">{analysis.nome || analysisTypeMeta?.label || analysis.tipo}</p>
+                    <p className="text-[10px] text-muted-foreground">{analysisTypeMeta?.label || analysis.tipo}</p>
+                    <p className="text-[9px] font-mono opacity-60 italic">{analysis.codigo}</p>
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase font-black text-muted-foreground">Data Produção</p>
+                  <p className="text-sm font-bold">{batch.produced_at.split("T")[0].split("-").reverse().join("/")}</p>
+                </div>
+                {!cliente && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] uppercase font-black text-muted-foreground">Máquina</p>
+                    <p className="text-sm font-bold">{batch.maquina || "—"}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className={cn("grid gap-6 md:gap-10", exporting && !cliente ? "grid-cols-2" : exporting ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2")} data-pdf-avoid-break>
+                {/* Granulometria */}
+                {!cliente && (<div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                      <BarChart3 className="h-3 w-3" />
+                      {getTipoDosagem(analysis.tipo) === "WET_CASTING_PROTENDIDO"
+                        ? "Curva Combinada — Concreto Estrutural Protendido"
+                        : "Estudo Granulométrico (DNA)"}
+                    </h2>
+                    <div className="flex gap-2">
+                      {exporting ? (
+                          <PdfPill
+                            small
+                            label={curveStatus.status === "conforme" ? "DENTRO DA CURVA" : "FORA DA FAIXA"}
+                            {...PDF_STATUS_PILL[curveStatus.status === "conforme" ? "success" : "warning"]}
+                          />
+                        ) : (
+                          <Badge className={cn("font-black text-[9px] px-3 py-1", curveStatus.status === "conforme" ? "bg-emerald-500 hover:bg-emerald-600" : "bg-amber-500 hover:bg-amber-600")}>
+                        {curveStatus.status === "conforme" ? "DENTRO DA CURVA" : "FORA DA FAIXA"}
+                      </Badge>
+                        )}
+                    </div>
+                  </div>
+                  {combinedCurve.length > 0 ? (
+                    <div className="relative h-[250px] w-full bg-muted/5 rounded-lg border p-2">
+                      <GranulometryChart curveResults={combinedCurve} hasLimits={limitesDNA.length > 0} tipoDosagem={getTipoDosagem(analysis.tipo)} compact={true} />
+                    </div>
+                  ) : (
+                    <div className="h-[250px] flex items-center justify-center bg-muted/10 rounded-lg border text-muted-foreground text-sm italic">
+                      Dados granulométricos não disponíveis
+                    </div>
+                  )}
+                </div>)}
+
+                {/* Curva de Crescimento */}
+                <div className="space-y-4">
+                  <h2 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                    <LineChartIcon className="h-3 w-3" /> Evolução de Resistência
+                  </h2>
+                  <div className="h-[250px] w-full bg-muted/5 rounded-lg border p-4">
+                    {growthData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={growthData}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                          <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
+                          <YAxis fontSize={10} tickLine={false} axisLine={false} unit=" MPa" />
+                          <Tooltip contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", fontSize: "11px" }} />
+                          <ReferenceLine y={analysis.resistencia_prevista} stroke="hsl(var(--primary))" strokeDasharray="3 3" label={{ position: "right", value: "Meta fck", fill: "hsl(var(--primary))", fontSize: 9, fontWeight: "bold" }} />
+                          <Line type="monotone" dataKey="mpa" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 4, fill: "hsl(var(--primary))", strokeWidth: 2, stroke: "white" }} activeDot={{ r: 6 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-muted-foreground text-sm italic">
+                        Nenhum ensaio concluído ainda
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <Separator className="opacity-50" />
+
+              {/* Composição e Dosagem */}
+              {!cliente && materialsDetail.length > 0 && dosagem && (
+                <div className="space-y-6">
+                  <h2 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2" data-pdf-avoid-break>
+                    <Beaker className="h-3 w-3" /> Matrizes de Composição e Dosagem
+                  </h2>
+                  <div className="rounded-lg border overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-muted border-b text-muted-foreground font-black text-[9px] uppercase">
+                          <th className="text-left py-3 px-4">Material</th>
+                          <th className="text-center py-3 px-2">Proporção</th>
+                          <th className="text-right py-3 px-2">kg/m³</th>
+                          <th className="text-right py-3 px-2">Batelada (kg)</th>
+                          <th className="text-right py-3 px-4">Densidade</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {materialsDetail.map((m, i) => (
+                          <tr key={i} className="hover:bg-muted/5">
+                            <td className="py-2.5 px-4 font-bold">{m.nome}</td>
+                            <td className="py-2.5 px-2 text-center">
+                              <Badge variant="secondary" className="font-bold text-[10px]">{(m.proporcao_pct * 100).toFixed(1)}%</Badge>
+                            </td>
+                            <td className="py-2.5 px-2 text-right font-black">{m.kg_m3.toFixed(1)}</td>
+                            <td className="py-2.5 px-2 text-right font-black text-primary">{m.kg_batelada.toFixed(1)}</td>
+                            <td className="py-2.5 px-4 text-right text-muted-foreground">{m.densidade?.toFixed(3)} g/cm³</td>
+                          </tr>
+                        ))}
+                        <tr className="bg-primary/5 font-black">
+                          <td className="py-3 px-4 uppercase text-[9px] text-primary">Cimento Portland</td>
+                          <td className="py-3 px-2 text-center text-primary text-[8px]">1 : {dosagem.relacao_cimento}</td>
+                          <td className="py-3 px-2 text-right text-primary">
+                            {(() => {
+                              const volB = dosagem.volume_batelada_litros ? dosagem.volume_batelada_litros / 1000 : 0.55;
+                              return volB > 0 ? ((dosagem.consumo_cimento_kg ?? 0) / volB).toFixed(1) : "—";
+                            })()}
+                          </td>
+                          <td className="py-3 px-2 text-right text-primary">
+                            {(dosagem.consumo_cimento_kg ?? 0).toFixed(1)}
+                          </td>
+                          <td className="py-3 px-4 text-right">{(dosagem.densidade_cimento ?? 3.15).toFixed(3)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              <Separator className="opacity-50" />
+
+              {/* Ensaios de Rompimento */}
+              <div className="space-y-4">
+                <h2 className="text-xs font-black uppercase tracking-widest text-primary">Detalhamento dos Ensaios de Compressão</h2>
+                {statsBySchedule.length > 0 ? (
+                  <div className={cn("grid gap-4", exporting ? "grid-cols-2" : "grid-cols-1 md:grid-cols-2")}>
+                    {statsBySchedule.map((s: any, idx: number) => (
+                      <div key={idx} className="border rounded-lg overflow-hidden bg-muted/5" data-pdf-avoid-break>
+                        <div className="bg-muted px-4 py-2 flex justify-between items-center border-b">
+                          <span className="text-[10px] font-black uppercase flex items-center gap-2 italic">
+                            <CheckCircle2 className="h-3 w-3 text-emerald-500" /> Rompimento {s.idade}d
+                          </span>
+                          <span className="text-[9px] text-muted-foreground font-bold">
+                            {s.data?.split("-").reverse().join("/")}
+                          </span>
+                        </div>
+                        <div className="p-4 space-y-3">
+                          {s.results.map((r: any, ri: number) => (
+                            <div key={ri} className="space-y-2">
+                              <div className="flex justify-between items-center text-xs font-black opacity-80 uppercase">
+                                <span>{r.label}</span>
+                                <span className={cn(r.stats.status === "conforme" ? "text-emerald-500" : "text-amber-500")}>
+                                  {r.stats.media.toFixed(2)} MPa
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-2">
+                                {[["Média", r.stats.media.toFixed(2)], ["Desvio", r.stats.desvio_padrao.toFixed(2)], ["C.V", `${r.stats.coeficiente_variacao.toFixed(1)}%`]].map(([label, val]) => (
+                                  <div key={label} className="bg-background border rounded px-2 py-1.5 text-center">
+                                    <p className="text-[7px] uppercase font-bold text-muted-foreground">{label}</p>
+                                    <p className="text-[10px] font-black">{val}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-10 border border-dashed rounded-lg text-center bg-muted/5">
+                    <p className="text-muted-foreground text-sm italic">Nenhum ensaio de rompimento concluído para este lote.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className={cn("flex justify-between items-end border-t border-dashed", exporting ? "pt-4" : "pt-10")} data-pdf-avoid-break>
+                <div className="space-y-1.5 text-[8px] text-muted-foreground max-w-[450px] leading-relaxed">
+                  <p className="font-black text-[9px] opacity-80">DECLARAÇÃO TÉCNICA E RESPONSABILIDADE:</p>
+                  <p>Os resultados apresentados neste Laudo Técnico foram obtidos através de ensaios laboratoriais seguindo rigorosamente as Normas Brasileiras Regulamentadoras (NBR). A amostragem foi realizada de acordo com o plano de controle de qualidade da unidade executora.</p>
+                  <p className="font-mono opacity-60 text-[7px]">Ref: {batch.id?.toUpperCase()} • Versão {cliente ? "Cliente" : "Empresa"}</p>
+                </div>
+                <div className="text-center w-[250px] space-y-2 pb-2">
+                  <Separator />
+                  <p className="text-[10px] font-black uppercase tracking-wider">{batch.operador_nome || "Responsável Técnico"}</p>
+                  <p className="text-[8px] uppercase font-bold text-muted-foreground">Responsável pelo Controle Tecnológico</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+    );
+  };
   return (
     <div className="space-y-6 animate-fade-in pb-10 print:p-0">
       <div className="flex items-center justify-between print:hidden">
@@ -307,247 +658,33 @@ const QualityReportPage = () => {
             )}
             Enviar via WhatsApp
           </Button>
-          <Button onClick={() => window.print()} className="gap-2">
-            <Printer className="h-4 w-4" /> Imprimir Relatório
+          <Button
+            variant="outline"
+            onClick={() => handleDownloadPdf("empresa")}
+            disabled={exportModo !== null}
+            className="gap-2"
+          >
+            {exportModo === "empresa" ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Gerar PDF (Empresa)
+          </Button>
+          <Button
+            onClick={() => handleDownloadPdf("cliente")}
+            disabled={exportModo !== null}
+            className="gap-2"
+          >
+            {exportModo === "cliente" ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Gerar PDF (Cliente)
           </Button>
         </div>
       </div>
 
-      <Card ref={reportRef} className="max-w-[1000px] mx-auto shadow-xl border-t-8 border-t-primary rounded-xl print:shadow-none print:border-none print:max-w-full">
-        <CardContent className="p-10 space-y-10">
-          {/* Header */}
-          <div className="flex justify-between items-start" data-pdf-avoid-break>
-            <div className="space-y-1">
-              <h1 className="text-3xl font-black uppercase tracking-tighter text-foreground flex items-center gap-2">
-                <FlaskConical className="h-8 w-8 text-primary" />
-                {identity.nome || "Laudo Técnico"}
-              </h1>
-              <div className="flex flex-col gap-0.5 mt-2">
-                <p className="text-sm font-bold text-muted-foreground uppercase opacity-70">
-                  {identity.cnpj ? `CNPJ: ${identity.cnpj} • ` : ""}Laudo Técnico
-                </p>
-                {identity.endereco && (
-                  <p className="text-[10px] font-medium text-muted-foreground opacity-60">{identity.endereco}</p>
-                )}
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground uppercase font-black">Lote de Produção</p>
-              <p className="text-2xl font-black text-primary leading-tight">{batch.batch_code}</p>
-              <div className="mt-1"><StatusBadge status={batch.status} /></div>
-            </div>
-          </div>
+      {renderReport("empresa", reportRef, false)}
 
-          <Separator className="opacity-50" />
-
-          {batch.status === "liberado_antecipado" && (
-            <div className="bg-amber-500/10 border-l-4 border-amber-500 rounded-r-lg p-6 flex items-start gap-4" data-pdf-avoid-break>
-              <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
-              <div className="space-y-1">
-                <h3 className="font-black text-sm uppercase tracking-wider text-amber-700">Aprovação Técnica Excepcional</h3>
-                <p className="text-sm font-semibold text-amber-900/80 leading-relaxed italic">
-                  {batch.notas ?? "Lote liberado antecipadamente por critério técnico."}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {batch.status === "aprovado_com_ressalva" && (
-            <div className="bg-warning/10 border-l-4 border-warning rounded-r-lg p-6 flex items-start gap-4" data-pdf-avoid-break>
-              <AlertTriangle className="h-5 w-5 text-warning mt-0.5 shrink-0" />
-              <div className="space-y-1">
-                <h3 className="font-black text-sm uppercase tracking-wider text-warning">Aprovado com Ressalva</h3>
-                <p className="text-sm font-semibold text-warning/90 leading-relaxed italic">
-                  Este lote foi aprovado, porém 1 ensaio de rompimento (resistência) apresentou resultado fora da conformidade. A ressalva não compromete a liberação do lote, mas indica um ponto de atenção pontual no processo.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Dados Gerais */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8" data-pdf-avoid-break>
-            <div className="space-y-1">
-              <p className="text-[10px] uppercase font-black text-muted-foreground">Produto / Análise</p>
-              <p className="text-sm font-bold">{analysis.nome || analysisTypeMeta?.label || analysis.tipo}</p>
-              <p className="text-[10px] text-muted-foreground">{analysisTypeMeta?.label || analysis.tipo}</p>
-              <p className="text-[9px] font-mono opacity-60 italic">{analysis.codigo}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-[10px] uppercase font-black text-muted-foreground">Data Produção</p>
-              <p className="text-sm font-bold">{batch.produced_at.split("T")[0].split("-").reverse().join("/")}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-[10px] uppercase font-black text-muted-foreground">Máquina</p>
-              <p className="text-sm font-bold">{batch.maquina || "—"}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10" data-pdf-avoid-break>
-            {/* Granulometria */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                  <BarChart3 className="h-3 w-3" />
-                  {getTipoDosagem(analysis.tipo) === "WET_CASTING_PROTENDIDO"
-                    ? "Curva Combinada — Concreto Estrutural Protendido"
-                    : "Estudo Granulométrico (DNA)"}
-                </h2>
-                <div className="flex gap-2">
-                  <Badge className={cn("font-black text-[9px] px-3 py-1", curveStatus.status === "conforme" ? "bg-emerald-500 hover:bg-emerald-600" : "bg-amber-500 hover:bg-amber-600")}>
-                    {curveStatus.status === "conforme" ? "DENTRO DA CURVA" : "FORA DA FAIXA"}
-                  </Badge>
-                </div>
-              </div>
-              {combinedCurve.length > 0 ? (
-                <div className="relative h-[250px] w-full bg-muted/5 rounded-lg border p-2">
-                  <GranulometryChart curveResults={combinedCurve} hasLimits={limitesDNA.length > 0} tipoDosagem={getTipoDosagem(analysis.tipo)} compact={true} />
-                </div>
-              ) : (
-                <div className="h-[250px] flex items-center justify-center bg-muted/10 rounded-lg border text-muted-foreground text-sm italic">
-                  Dados granulométricos não disponíveis
-                </div>
-              )}
-            </div>
-
-            {/* Curva de Crescimento */}
-            <div className="space-y-4">
-              <h2 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                <LineChartIcon className="h-3 w-3" /> Evolução de Resistência
-              </h2>
-              <div className="h-[250px] w-full bg-muted/5 rounded-lg border p-4">
-                {growthData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={growthData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                      <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
-                      <YAxis fontSize={10} tickLine={false} axisLine={false} unit=" MPa" />
-                      <Tooltip contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", fontSize: "11px" }} />
-                      <ReferenceLine y={analysis.resistencia_prevista} stroke="hsl(var(--primary))" strokeDasharray="3 3" label={{ position: "right", value: "Meta fck", fill: "hsl(var(--primary))", fontSize: 9, fontWeight: "bold" }} />
-                      <Line type="monotone" dataKey="mpa" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 4, fill: "hsl(var(--primary))", strokeWidth: 2, stroke: "white" }} activeDot={{ r: 6 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm italic">
-                    Nenhum ensaio concluído ainda
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <Separator className="opacity-50" />
-
-          {/* Composição e Dosagem */}
-          {materialsDetail.length > 0 && dosagem && (
-            <div className="space-y-6">
-              <h2 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2" data-pdf-avoid-break>
-                <Beaker className="h-3 w-3" /> Matrizes de Composição e Dosagem
-              </h2>
-              <div className="rounded-lg border overflow-hidden">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="bg-muted border-b text-muted-foreground font-black text-[9px] uppercase">
-                      <th className="text-left py-3 px-4">Material</th>
-                      <th className="text-center py-3 px-2">Proporção</th>
-                      <th className="text-right py-3 px-2">kg/m³</th>
-                      <th className="text-right py-3 px-2">Batelada (kg)</th>
-                      <th className="text-right py-3 px-4">Densidade</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {materialsDetail.map((m, i) => (
-                      <tr key={i} className="hover:bg-muted/5">
-                        <td className="py-2.5 px-4 font-bold">{m.nome}</td>
-                        <td className="py-2.5 px-2 text-center">
-                          <Badge variant="secondary" className="font-bold text-[10px]">{(m.proporcao_pct * 100).toFixed(1)}%</Badge>
-                        </td>
-                        <td className="py-2.5 px-2 text-right font-black">{m.kg_m3.toFixed(1)}</td>
-                        <td className="py-2.5 px-2 text-right font-black text-primary">{m.kg_batelada.toFixed(1)}</td>
-                        <td className="py-2.5 px-4 text-right text-muted-foreground">{m.densidade?.toFixed(3)} g/cm³</td>
-                      </tr>
-                    ))}
-                    <tr className="bg-primary/5 font-black">
-                      <td className="py-3 px-4 uppercase text-[9px] text-primary">Cimento Portland</td>
-                      <td className="py-3 px-2 text-center text-primary text-[8px]">1 : {dosagem.relacao_cimento}</td>
-                      <td className="py-3 px-2 text-right text-primary">
-                        {(() => {
-                          const volB = dosagem.volume_batelada_litros ? dosagem.volume_batelada_litros / 1000 : 0.55;
-                          return volB > 0 ? ((dosagem.consumo_cimento_kg ?? 0) / volB).toFixed(1) : "—";
-                        })()}
-                      </td>
-                      <td className="py-3 px-2 text-right text-primary">
-                        {(dosagem.consumo_cimento_kg ?? 0).toFixed(1)}
-                      </td>
-                      <td className="py-3 px-4 text-right">{(dosagem.densidade_cimento ?? 3.15).toFixed(3)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          <Separator className="opacity-50" />
-
-          {/* Ensaios de Rompimento */}
-          <div className="space-y-4">
-            <h2 className="text-xs font-black uppercase tracking-widest text-primary">Detalhamento dos Ensaios de Compressão</h2>
-            {statsBySchedule.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {statsBySchedule.map((s: any, idx: number) => (
-                  <div key={idx} className="border rounded-lg overflow-hidden bg-muted/5" data-pdf-avoid-break>
-                    <div className="bg-muted px-4 py-2 flex justify-between items-center border-b">
-                      <span className="text-[10px] font-black uppercase flex items-center gap-2 italic">
-                        <CheckCircle2 className="h-3 w-3 text-emerald-500" /> Rompimento {s.idade}d
-                      </span>
-                      <span className="text-[9px] text-muted-foreground font-bold">
-                        {s.data?.split("-").reverse().join("/")}
-                      </span>
-                    </div>
-                    <div className="p-4 space-y-3">
-                      {s.results.map((r: any, ri: number) => (
-                        <div key={ri} className="space-y-2">
-                          <div className="flex justify-between items-center text-xs font-black opacity-80 uppercase">
-                            <span>{r.label}</span>
-                            <span className={cn(r.stats.status === "conforme" ? "text-emerald-500" : "text-amber-500")}>
-                              {r.stats.media.toFixed(2)} MPa
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-3 gap-2">
-                            {[["Média", r.stats.media.toFixed(2)], ["Desvio", r.stats.desvio_padrao.toFixed(2)], ["C.V", `${r.stats.coeficiente_variacao.toFixed(1)}%`]].map(([label, val]) => (
-                              <div key={label} className="bg-background border rounded px-2 py-1.5 text-center">
-                                <p className="text-[7px] uppercase font-bold text-muted-foreground">{label}</p>
-                                <p className="text-[10px] font-black">{val}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-10 border border-dashed rounded-lg text-center bg-muted/5">
-                <p className="text-muted-foreground text-sm italic">Nenhum ensaio de rompimento concluído para este lote.</p>
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="pt-10 flex justify-between items-end border-t border-dashed" data-pdf-avoid-break>
-            <div className="space-y-1.5 text-[8px] text-muted-foreground max-w-[450px] leading-relaxed">
-              <p className="font-black text-[9px] opacity-80">DECLARAÇÃO TÉCNICA E RESPONSABILIDADE:</p>
-              <p>Os resultados apresentados neste Laudo Técnico foram obtidos através de ensaios laboratoriais seguindo rigorosamente as Normas Brasileiras Regulamentadoras (NBR). A amostragem foi realizada de acordo com o plano de controle de qualidade da unidade executora.</p>
-              <p className="font-mono opacity-60 text-[7px]">Ref: {batch.id?.toUpperCase()}</p>
-            </div>
-            <div className="text-center w-[250px] space-y-2 pb-2">
-              <Separator />
-              <p className="text-[10px] font-black uppercase tracking-wider">{batch.operador_nome || "Responsável Técnico"}</p>
-              <p className="text-[8px] uppercase font-bold text-muted-foreground">Responsável pelo Controle Tecnológico</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {exportModo && (
+        <div aria-hidden style={{ position: "fixed", left: -10000, top: 0, width: 794 }}>
+          {renderReport(exportModo, exportRef, true)}
+        </div>
+      )}
     </div>
   );
 };

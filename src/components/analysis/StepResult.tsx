@@ -417,7 +417,7 @@ export function StepResult({ data }: StepResultProps) {
             {/* Mini legenda */}
             <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
               <div className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-destructive" />
+                <span className="h-2 w-2 rounded-full bg-primary" />
                 Atual
               </div>
               {dna && (
@@ -453,9 +453,9 @@ export function StepResult({ data }: StepResultProps) {
               <Line
                 type="monotone"
                 dataKey="acumulado"
-                stroke="hsl(var(--destructive))"
+                stroke="hsl(var(--chart-primary))"
                 strokeWidth={3}
-                dot={{ r: 4, fill: "hsl(var(--destructive))", stroke: "hsl(var(--card))", strokeWidth: 2 }}
+                dot={{ r: 4, fill: "hsl(var(--chart-primary))", stroke: "hsl(var(--card))", strokeWidth: 2 }}
                 name="Atual"
               />
             </ComposedChart>

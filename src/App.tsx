@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ThemeRoot } from "@/components/ThemeRoot";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
@@ -21,6 +22,7 @@ import QualityReportPage from "./pages/QualityReportPage";
 import CostReportPage from "./pages/CostReportPage";
 import MonthlyReportPage from "./pages/MonthlyReportPage";
 import GranulometriaPage from "./pages/GranulometriaPage";
+import PistaMetricsPage from "./pages/PistaMetricsPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
@@ -31,8 +33,9 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <Sonner />
       <BrowserRouter>
+        <ThemeRoot>
+        <Sonner />
         <AuthProvider>
         <Routes>
           <Route element={<AppLayout />}>
@@ -69,6 +72,11 @@ const App = () => (
             <Route path="/production" element={
               <ProtectedRoute allowedRoles={["ADMIN", "PRODUCAO", "VENDAS", "GERENTE"]}>
                 <ProductionPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/pista-metrics" element={
+              <ProtectedRoute allowedRoles={["ADMIN", "PRODUCAO", "VENDAS", "GERENTE"]}>
+                <PistaMetricsPage />
               </ProtectedRoute>
             } />
             <Route path="/ruptures" element={
@@ -117,6 +125,7 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
         </AuthProvider>
+        </ThemeRoot>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

@@ -60,15 +60,15 @@ function getFormattedDate(): string {
 }
 
 // ── Paleta da logo ────────────────────────────────────────────
-const BRAND_RED        = "hsl(0, 80%, 38%)";  // escuro — cor principal da logo
-const BRAND_RED_MED    = "hsl(0, 68%, 56%)";  // médio
-const BRAND_RED_LIGHT  = "hsl(0, 65%, 76%)";  // claro
+const BRAND_RED        = "hsl(var(--chart-primary))";  // cor principal do tema
+const BRAND_RED_MED    = "hsl(var(--chart-primary-light))";  // azul vivo
+const BRAND_RED_LIGHT  = "hsl(var(--chart-primary-soft))";  // azul claro
 
 // ── Tooltip customizado ────────────────────────────────────────
 const CustomBarTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-border bg-white shadow-lg px-4 py-3 text-sm min-w-[140px]">
+    <div className="rounded-lg border border-border bg-white dark:bg-card shadow-lg px-4 py-3 text-sm min-w-[140px]">
       <p className="font-bold text-foreground mb-2">{label}</p>
       {payload.map((p: any) => (
         <div key={p.name} className="flex items-center justify-between gap-4">
@@ -251,10 +251,10 @@ const Dashboard = () => {
             {greeting} 👋
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            Controle Tecnológico &mdash; Lajeforro Matriz
+            Controle Tecnológico &mdash; Concreart Matriz
           </p>
         </div>
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 shadow-sm">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-white dark:bg-card px-3 py-2 shadow-sm">
           <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
           <span className="text-xs font-medium text-muted-foreground capitalize">{dateStr}</span>
         </div>
@@ -321,10 +321,10 @@ const Dashboard = () => {
           <CardContent className="pt-2">
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={realBarData} barGap={4} barCategoryGap="30%">
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(0,10%,93%)" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                 <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "hsl(0,0%,50%)" }} />
                 <YAxis fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "hsl(0,0%,50%)" }} width={32} />
-                <Tooltip content={<CustomBarTooltip />} cursor={{ fill: "hsl(0,10%,96%)" }} />
+                <Tooltip content={<CustomBarTooltip />} cursor={{ fill: "hsl(var(--muted))" }} />
                 <Bar dataKey="previsto" fill={BRAND_RED} radius={[4, 4, 0, 0]} maxBarSize={28} />
               </BarChart>
             </ResponsiveContainer>
@@ -416,7 +416,7 @@ const Dashboard = () => {
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={costMetrics.mensais} barGap={4} barCategoryGap="25%">
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(0,10%,93%)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
               <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "hsl(0,0%,50%)" }} />
               <YAxis fontSize={11} tickLine={false} axisLine={false} tick={{ fill: "hsl(0,0%,50%)" }} width={50}
                 tickFormatter={(v) => v > 0 ? `R$${v}` : "0"} />
@@ -424,7 +424,7 @@ const Dashboard = () => {
                 content={({ active, payload, label }) => {
                   if (!active || !payload?.length) return null;
                   return (
-                    <div className="rounded-lg border border-border bg-white shadow-lg px-4 py-3 text-sm min-w-[160px]">
+                    <div className="rounded-lg border border-border bg-white dark:bg-card shadow-lg px-4 py-3 text-sm min-w-[160px]">
                       <p className="font-bold text-foreground mb-2">{label}</p>
                       {payload.map((p: any) => (
                         <div key={p.name} className="flex items-center justify-between gap-4">
@@ -440,7 +440,7 @@ const Dashboard = () => {
                     </div>
                   );
                 }}
-                cursor={{ fill: "hsl(0,10%,96%)" }}
+                cursor={{ fill: "hsl(var(--muted))" }}
               />
               <Bar dataKey="totalBatelada" fill={BRAND_RED} radius={[4, 4, 0, 0]} maxBarSize={36} />
               <Bar dataKey="batchCount" fill={BRAND_RED_LIGHT} radius={[4, 4, 0, 0]} maxBarSize={36} />

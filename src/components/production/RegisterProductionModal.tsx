@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { calcPerda, PISTAS, FIOS_OPCOES, COMPRIMENTO_PISTA_M } from "@/lib/production-loss";
 import { ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import { useProduction } from "@/hooks/api/useProduction";
@@ -39,6 +41,13 @@ export function RegisterProductionModal({ open, onOpenChange, analysis }: Regist
   const [observacoes, setObservacoes] = useState("");
   const [aguaKg, setAguaKg] = useState<string>("");
   const [aditivoMl, setAditivoMl] = useState<string>("");
+  const [pista, setPista] = useState<string>("");
+  const [fios, setFios] = useState<string>("");
+  const [metrosPerda, setMetrosPerda] = useState<string>("0");
+  const [volumeConcreto, setVolumeConcreto] = useState<string>("");
+
+  const metrosPerdaNum = Number(metrosPerda) || 0;
+  const { perda, aproveitamento } = calcPerda(metrosPerdaNum);
 
   // Sincroniza data/hora com o momento de liberação da análise quando o modal abre
   useEffect(() => {
@@ -102,6 +111,28 @@ export function RegisterProductionModal({ open, onOpenChange, analysis }: Regist
       return;
     }
 
+    if (!pista) {
+      toast.error("Informe a pista");
+      return;
+    }
+    if (!fios) {
+      toast.error("Informe a quantidade de fios");
+      return;
+    }
+    const volumeConcretoNum = Number(volumeConcreto);
+    if (!(volumeConcretoNum > 0)) {
+      toast.error("Informe o volume de concreto produzido (m³)");
+      return;
+    }
+    if (metrosPerdaNum < 0) {
+      toast.error("Metros de perda não pode ser negativo");
+      return;
+    }
+    if (metrosPerdaNum > COMPRIMENTO_PISTA_M) {
+      toast.error(`Metros de perda não pode passar de ${COMPRIMENTO_PISTA_M} m (comprimento da pista)`);
+      return;
+    }
+
     try {
       await createBatch({
         analysis_id: analysis.id,
@@ -109,6 +140,10 @@ export function RegisterProductionModal({ open, onOpenChange, analysis }: Regist
         operador_nome: operador.trim(),
         maquina,
         volume_produzido: Math.round((analysis.formData.volume_m3 || 0.55) * 1000),
+        volume_concreto_m3: volumeConcretoNum,
+        pista,
+        fios: Number(fios),
+        metros_perda: metrosPerdaNum,
         notas: observacoes,
         produced_at: new Date(dataProducao).toISOString(),
       });
@@ -130,6 +165,10 @@ export function RegisterProductionModal({ open, onOpenChange, analysis }: Regist
     setOperador("");
     setMaquina("");
     setObservacoes("");
+    setPista("");
+    setFios("");
+    setMetrosPerda("0");
+    setVolumeConcreto("");
   };
 
   return (
@@ -200,6 +239,65 @@ export function RegisterProductionModal({ open, onOpenChange, analysis }: Regist
                 value={dataProducao}
                 onChange={(e) => setDataProducao(e.target.value)}
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Pista *</Label>
+              <Select value={pista} onValueChange={setPista}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {PISTAS.map((p) => (
+                    <SelectItem key={p} value={p}>Pista {p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Fios *</Label>
+              <Select value={fios} onValueChange={setFios}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {FIOS_OPCOES.map((f) => (
+                    <SelectItem key={f} value={String(f)}>{f} fios</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2 col-span-2">
+              <Label htmlFor="volume-concreto">Volume de Concreto Produzido (m³) *</Label>
+              <Input
+                id="volume-concreto"
+                type="number"
+                min={0}
+                step="0.01"
+                value={volumeConcreto}
+                onChange={(e) => setVolumeConcreto(e.target.value)}
+                placeholder="Ex: 12.6"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="metros-perda">Metros de Perda (m)</Label>
+              <Input
+                id="metros-perda"
+                type="number"
+                min={0}
+                max={COMPRIMENTO_PISTA_M}
+                step="0.01"
+                value={metrosPerda}
+                onChange={(e) => setMetrosPerda(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
+                <Label>% Perda</Label>
+                <Input value={perda.toFixed(2)} readOnly className="bg-muted/50 cursor-not-allowed" />
+              </div>
+              <div className="space-y-2">
+                <Label>% Aprov.</Label>
+                <Input value={aproveitamento.toFixed(2)} readOnly className="bg-muted/50 cursor-not-allowed" />
+              </div>
             </div>
           </div>
 

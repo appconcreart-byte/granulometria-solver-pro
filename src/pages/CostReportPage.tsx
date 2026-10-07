@@ -31,10 +31,10 @@ import { useMaterials } from "@/hooks/api/useMaterials";
 import { StatusBadge } from "@/components/StatusBadge";
 import { calcularCustoTracoCompleto } from "@/lib/utils";
 
-const BRAND_RED = "hsl(0, 80%, 38%)";
-const BRAND_RED_MED = "hsl(0, 68%, 56%)";
-const BRAND_RED_LIGHT = "hsl(0, 65%, 76%)";
-const PIE_COLORS = [BRAND_RED, BRAND_RED_MED, BRAND_RED_LIGHT, "hsl(0, 50%, 85%)", "hsl(0, 40%, 90%)"];
+const BRAND_RED = "hsl(var(--chart-primary))";
+const BRAND_RED_MED = "hsl(var(--chart-primary-light))";
+const BRAND_RED_LIGHT = "hsl(var(--chart-primary-soft))";
+const PIE_COLORS = [BRAND_RED, BRAND_RED_MED, BRAND_RED_LIGHT, "hsl(var(--chart-primary-soft) / 0.7)", "hsl(var(--chart-primary-soft) / 0.45)"];
 
 const CostReportPage = () => {
   const { analyses, isLoading: loadingAnalyses } = useAnalyses();
@@ -220,7 +220,7 @@ const CostReportPage = () => {
           <CardContent className="pt-2">
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={costMetrics.mensais} barGap={4}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(0,10%,93%)" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                 <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis fontSize={11} tickLine={false} axisLine={false} width={60}
                   tickFormatter={(v) => v > 0 ? `R$${v}` : "0"} />
@@ -229,14 +229,14 @@ const CostReportPage = () => {
                     if (!active || !payload?.length) return null;
                     const d = payload[0]?.payload;
                     return (
-                      <div className="rounded-lg border bg-white shadow-lg px-4 py-3 text-sm">
+                      <div className="rounded-lg border bg-white dark:bg-card shadow-lg px-4 py-3 text-sm">
                         <p className="font-bold mb-1">{label}</p>
                         <p>Total: <strong>R$ {Number(d?.totalBatelada || 0).toFixed(2)}</strong></p>
                         <p className="text-muted-foreground">{d?.batchCount || 0} lote(s) • {d?.analysisCount || 0} traço(s)</p>
                       </div>
                     );
                   }}
-                  cursor={{ fill: "hsl(0,10%,96%)" }}
+                  cursor={{ fill: "hsl(var(--muted))" }}
                 />
                 <Bar dataKey="totalBatelada" fill={BRAND_RED} radius={[4, 4, 0, 0]} maxBarSize={40} />
               </BarChart>
