@@ -20,6 +20,7 @@ import { Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ViewRuptureResultModal } from "../rupture/ViewRuptureResultModal";
+import { calcPerda } from "@/lib/production-loss";
 
 interface ViewProductionModalProps {
   open: boolean;
@@ -271,6 +272,18 @@ export function ViewProductionModal({ open, onOpenChange, analysis, batch }: Vie
                   <span className="text-muted-foreground">Status:</span>{" "}
                   <StatusBadge status={batch.status} />
                 </div>
+                {batch.pista && (
+                  <>
+                    <div><span className="text-muted-foreground">Pista:</span> <strong>{batch.pista}</strong></div>
+                    <div><span className="text-muted-foreground">Concreto:</span> {batch.volume_concreto_m3 != null ? `${batch.volume_concreto_m3} m³` : "—"}</div>
+                    <div><span className="text-muted-foreground">Fios:</span> {batch.fios ?? "—"}</div>
+                    <div><span className="text-muted-foreground">Perda:</span> {(batch.metros_perda ?? 0).toFixed(2)} m</div>
+                    <div>
+                      <span className="text-muted-foreground">% Perda / Aproveit.:</span>{" "}
+                      {calcPerda(batch.metros_perda ?? 0).perda.toFixed(2)}% / {calcPerda(batch.metros_perda ?? 0).aproveitamento.toFixed(2)}%
+                    </div>
+                  </>
+                )}
               </div>
 
               {recipe && (

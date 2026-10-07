@@ -98,9 +98,9 @@ const LoginPage = () => {
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-sm space-y-8">
 
-          {/* Mobile logo only */}
-          <div className="lg:hidden text-center">
-            <img src={logoImg} alt="Concreart" className="h-24 w-auto object-contain mx-auto mb-2" />
+          {/* Logo */}
+          <div className="text-center -mt-24 pb-6 -translate-y-6">
+            <img src={logoImg} alt="Concreart" className="h-36 w-auto object-contain mx-auto" />
           </div>
 
           {/* Header */}

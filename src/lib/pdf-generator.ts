@@ -373,3 +373,35 @@ export async function generateElementPDF(element: HTMLElement): Promise<Blob> {
 
   return doc.output("blob");
 }
+
+
+// Captura o elemento e ajusta tudo em UMA folha A4 (reduz proporcionalmente se
+// o conteúdo for mais alto que a página). Usado pelo laudo técnico.
+export async function generateOnePagePDF(element: HTMLElement): Promise<Blob> {
+  const canvas = await html2canvas(element, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: "#ffffff",
+    windowWidth: element.scrollWidth,
+    windowHeight: element.scrollHeight,
+  });
+
+  const doc = new jsPDF("p", "mm", "a4");
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 8;
+  const maxW = pageWidth - margin * 2;
+  const maxH = pageHeight - margin * 2;
+
+  const ratio = canvas.width / canvas.height;
+  let w = maxW;
+  let h = w / ratio;
+  if (h > maxH) {
+    h = maxH;
+    w = h * ratio;
+  }
+  const x = (pageWidth - w) / 2;
+
+  doc.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", x, margin, w, h);
+  return doc.output("blob");
+}

@@ -13,6 +13,10 @@ export interface DBProductionBatch {
   operador_nome: string | null;
   maquina: string | null;
   volume_produzido: number | null;
+  volume_concreto_m3: number | null;
+  pista: string | null;
+  fios: number | null;
+  metros_perda: number | null;
   status: BatchStatus;
   notas: string | null;
   produced_at: string;
@@ -88,6 +92,10 @@ export function useProduction() {
       operador_nome: string;
       maquina: string | null;
       volume_produzido: number | null;
+      volume_concreto_m3: number;
+      pista: string;
+      fios: number;
+      metros_perda: number;
       notas: string | null;
       produced_at: string;
     }) => {
@@ -104,6 +112,10 @@ export function useProduction() {
           operador_nome: batchData.operador_nome,
           maquina: batchData.maquina,
           volume_produzido: batchData.volume_produzido,
+          volume_concreto_m3: batchData.volume_concreto_m3,
+          pista: batchData.pista,
+          fios: batchData.fios,
+          metros_perda: batchData.metros_perda,
           status: "aguardando_rompimentos",
           notas: batchData.notas,
           produced_at: batchData.produced_at,

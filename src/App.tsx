@@ -22,6 +22,7 @@ import QualityReportPage from "./pages/QualityReportPage";
 import CostReportPage from "./pages/CostReportPage";
 import MonthlyReportPage from "./pages/MonthlyReportPage";
 import GranulometriaPage from "./pages/GranulometriaPage";
+import PistaMetricsPage from "./pages/PistaMetricsPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
@@ -71,6 +72,11 @@ const App = () => (
             <Route path="/production" element={
               <ProtectedRoute allowedRoles={["ADMIN", "PRODUCAO", "VENDAS", "GERENTE"]}>
                 <ProductionPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/pista-metrics" element={
+              <ProtectedRoute allowedRoles={["ADMIN", "PRODUCAO", "VENDAS", "GERENTE"]}>
+                <PistaMetricsPage />
               </ProtectedRoute>
             } />
             <Route path="/ruptures" element={

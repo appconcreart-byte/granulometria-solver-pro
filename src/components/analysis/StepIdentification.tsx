@@ -14,6 +14,7 @@ import { Layers, Square, LayoutPanelTop } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AnalysisFormData } from "@/lib/analysis-data";
 import { getConfigMisturador } from "@/lib/analysis-data";
+import { ENABLED_PRODUCT_GROUPS, isGroupEnabled } from "@/lib/product-groups";
 
 interface StepIdentificationProps {
   data: AnalysisFormData;
@@ -90,9 +91,15 @@ export function StepIdentification({ data, onChange }: StepIdentificationProps) 
       </div>
 
       {/* Seletor de grupo — BLOCOS / PAVERS / LAJES */}
-      <div className="grid grid-cols-3 gap-3">
+      <div
+        className="grid gap-3"
+        style={{
+          gridTemplateColumns: `repeat(${ENABLED_PRODUCT_GROUPS.length}, minmax(0, 1fr))`,
+          maxWidth: `${ENABLED_PRODUCT_GROUPS.length * 220}px`,
+        }}
+      >
         {/* Card BLOCOS */}
-        <button
+        {isGroupEnabled("BLOCOS") && <button
           type="button"
           onClick={() =>
             onChange({
@@ -125,10 +132,10 @@ export function StepIdentification({ data, onChange }: StepIdentificationProps) 
             <p className="text-sm font-black tracking-wider">BLOCOS</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">Padrão + Estrutural</p>
           </div>
-        </button>
+        </button>}
 
         {/* Card PAVERS */}
-        <button
+        {isGroupEnabled("PAVERS") && <button
           type="button"
           onClick={() =>
             onChange({
@@ -161,10 +168,10 @@ export function StepIdentification({ data, onChange }: StepIdentificationProps) 
             <p className="text-sm font-black tracking-wider">PAVERS</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">Base + Face</p>
           </div>
-        </button>
+        </button>}
 
         {/* Card LAJES */}
-        <button
+        {isGroupEnabled("LAJES") && <button
           type="button"
           onClick={() =>
             onChange({
@@ -197,7 +204,7 @@ export function StepIdentification({ data, onChange }: StepIdentificationProps) 
             <p className="text-sm font-black tracking-wider">LAJES</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">Piso / Estrutural</p>
           </div>
-        </button>
+        </button>}
       </div>
 
       {/* Sub-tipo (aparece após escolha do grupo) */}
