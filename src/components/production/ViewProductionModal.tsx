@@ -29,6 +29,46 @@ interface ViewProductionModalProps {
   batch: DBProductionBatch | null;
 }
 
+const fmtNum = (n: number | null | undefined, d: number) =>
+  n == null ? "—" : Number(n).toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
+
+function InfoCard({
+  label,
+  unit,
+  big,
+  tone,
+  children,
+}: {
+  label: string;
+  unit?: string;
+  big?: boolean;
+  tone?: "danger" | "success";
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border bg-muted/30 p-3 min-w-0",
+        tone === "danger" && "border-red-500/30 bg-red-500/10",
+        tone === "success" && "border-emerald-500/30 bg-emerald-500/10",
+      )}
+    >
+      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <div
+        className={cn(
+          "mt-1 flex items-baseline gap-1 font-black text-foreground truncate",
+          big ? "text-2xl" : "text-sm",
+          tone === "danger" && "text-red-600 dark:text-red-400",
+          tone === "success" && "text-emerald-600 dark:text-emerald-400",
+        )}
+      >
+        {children}
+        {unit && children !== "—" && <span className="text-xs font-bold text-muted-foreground">{unit}</span>}
+      </div>
+    </div>
+  );
+}
+
 export function ViewProductionModal({ open, onOpenChange, analysis, batch }: ViewProductionModalProps) {
   const [selectedRupture, setSelectedRupture] = useState<any | null>(null);
   const [showRuptureResult, setShowRuptureResult] = useState(false);
@@ -107,7 +147,7 @@ export function ViewProductionModal({ open, onOpenChange, analysis, batch }: Vie
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Detalhes  {analysis.codigo}</DialogTitle>
         </DialogHeader>
@@ -265,26 +305,36 @@ export function ViewProductionModal({ open, onOpenChange, analysis, batch }: Vie
                     </>
                   )}
                 </div>
-                <div><span className="text-muted-foreground">Operador:</span> {batch.operador_nome}</div>
-                <div><span className="text-muted-foreground">Máquina:</span> {batch.maquina}</div>
-                <div><span className="text-muted-foreground">Volume:</span> {batch.volume_produzido} L</div>
-                <div>
-                  <span className="text-muted-foreground">Status:</span>{" "}
-                  <StatusBadge status={batch.status} />
-                </div>
-                {batch.pista && (
-                  <>
-                    <div><span className="text-muted-foreground">Pista:</span> <strong>{batch.pista}</strong></div>
-                    <div><span className="text-muted-foreground">Concreto:</span> {batch.volume_concreto_m3 != null ? `${batch.volume_concreto_m3} m³` : "—"}</div>
-                    <div><span className="text-muted-foreground">Fios:</span> {batch.fios ?? "—"}</div>
-                    <div><span className="text-muted-foreground">Perda:</span> {(batch.metros_perda ?? 0).toFixed(2)} m</div>
-                    <div>
-                      <span className="text-muted-foreground">% Perda / Aproveit.:</span>{" "}
-                      {calcPerda(batch.metros_perda ?? 0).perda.toFixed(2)}% / {calcPerda(batch.metros_perda ?? 0).aproveitamento.toFixed(2)}%
-                    </div>
-                  </>
-                )}
               </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+                <InfoCard label="Operador">{batch.operador_nome || "—"}</InfoCard>
+                <InfoCard label="Máquina">{batch.maquina || "—"}</InfoCard>
+                <InfoCard label="Status">
+                  <StatusBadge status={batch.status} />
+                </InfoCard>
+                <InfoCard label="Volume da batelada" unit="L">{fmtNum(batch.volume_produzido, 0)}</InfoCard>
+              </div>
+
+              {batch.pista ? (
+                <div className="space-y-3 pt-1">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Concretagem da pista</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <InfoCard label="Pista" big>{batch.pista}</InfoCard>
+                    <InfoCard label="Fios" big>{batch.fios ?? "—"}</InfoCard>
+                    <InfoCard label="Concreto" unit="m³" big>{fmtNum(batch.volume_concreto_m3, 1)}</InfoCard>
+                    <InfoCard label="Perda" unit="m" big>{fmtNum(batch.metros_perda ?? 0, 2)}</InfoCard>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <InfoCard label="% Perda" unit="%" big tone="danger">{fmtNum(calcPerda(batch.metros_perda ?? 0).perda, 2)}</InfoCard>
+                    <InfoCard label="% Aproveitamento" unit="%" big tone="success">{fmtNum(calcPerda(batch.metros_perda ?? 0).aproveitamento, 2)}</InfoCard>
+                  </div>
+                </div>
+              ) : (
+                <p className="rounded-md border border-dashed p-2 text-center text-xs text-muted-foreground">
+                  Lote registrado antes do controle de pista (sem dados de pista, fios e perda).
+                </p>
+              )}
 
               {recipe && (
                 <div className="pt-2">
