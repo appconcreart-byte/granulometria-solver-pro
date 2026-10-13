@@ -402,7 +402,7 @@ export function StepDosage({ data, onChange }: StepDosageProps) {
               {/* Volume, Massa, Água e Aditivo por Batelada — tiles uniformes */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+                  <Label className="h-4 flex items-center text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
                     Volume
                   </Label>
                   <div className="relative">
@@ -418,7 +418,7 @@ export function StepDosage({ data, onChange }: StepDosageProps) {
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+                  <Label className="h-4 flex items-center text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
                     Massa Total
                   </Label>
                   <div className="relative">
@@ -434,7 +434,7 @@ export function StepDosage({ data, onChange }: StepDosageProps) {
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1">
+                  <Label className="h-4 text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1">
                     <Droplets className="h-2.5 w-2.5" /> Água
                   </Label>
                   <div className="relative">
@@ -455,7 +455,7 @@ export function StepDosage({ data, onChange }: StepDosageProps) {
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+                  <Label className="h-4 flex items-center text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
                     Aditivo
                   </Label>
                   <div className="flex items-center gap-1.5">
