@@ -16,7 +16,8 @@ import {
 import { calcDosage } from "@/lib/granulometry-engine";
 import type { AnalysisFormData } from "@/lib/analysis-data";
 import { Beaker, Droplets, Weight, BarChart3, AlertCircle, Link2 } from "lucide-react";
-import { calcularCustoMaterial } from "@/lib/utils";
+import { calcularCustoMaterial, resolverCimento, resolverAditivo } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { useMaterials } from "@/hooks/api/useMaterials";
 import { BrandSelect } from "@/components/analysis/BrandSelect";
@@ -56,7 +57,7 @@ function gerarCurvaConsumo(
 const CustomConsumoCurveTooltip = ({ active, payload, label, dbMaterials, data, dosageResult }: any) => {
   if (!active || !payload?.length) return null;
   // Cálculo do custo dinâmico do cimento
-  const cimentoDb = dbMaterials.find((m: any) => m.ativo && (m.tipo === 'cimento' || m.nome.toLowerCase().includes('cimento')));
+  const cimentoDb = resolverCimento(data, dbMaterials);
   const cimento_valor = cimentoDb?.custo_valor ?? cimentoDb?.custo_tonelada ?? data.custo_cimento_ton ?? 0;
   const cimento_unidade = cimentoDb?.custo_unidade || (cimentoDb?.custo_tonelada != null ? 'tonelada' : 'tonelada');
   const cimento_densidade = cimentoDb?.densidade || 3.15;
@@ -68,7 +69,7 @@ const CustomConsumoCurveTooltip = ({ active, payload, label, dbMaterials, data, 
   });
 
   // Cálculo do custo dinâmico do aditivo
-  const aditivoDb = dbMaterials.find((m: any) => m.ativo && (m.tipo === 'aditivo' || m.nome.toLowerCase().includes('aditivo')));
+  const aditivoDb = resolverAditivo(data, dbMaterials);
   const aditivo_valor = aditivoDb?.custo_valor ?? 0;
   const aditivo_unidade = aditivoDb?.custo_unidade || 'litro';
   let custoAditivo = 0;
@@ -93,10 +94,16 @@ const CustomConsumoCurveTooltip = ({ active, payload, label, dbMaterials, data, 
 
 export function StepDosage({ data, onChange }: StepDosageProps) {
     const { materials: dbMaterials } = useMaterials();
-  const [aditivoUnidade, setAditivoUnidade] = useState<'mL' | 'g'>('mL');
+  // Unidade do aditivo e do aço ficam gravadas na análise (aditivos_ml / aco_quantidade guardam só o número)
+  const aditivoUnidade = data.aditivo_unidade ?? 'mL';
+  const acoUnidade = data.aco_unidade ?? 'kg';
 
   const cimentoMaterials = useMemo(
     () => dbMaterials.filter((m) => m.tipo === 'cimento'),
+    [dbMaterials]
+  );
+  const acoMaterials = useMemo(
+    () => dbMaterials.filter((m) => m.tipo === 'aco' && m.ativo),
     [dbMaterials]
   );
   const aditivoMaterials = useMemo(
@@ -109,8 +116,8 @@ export function StepDosage({ data, onChange }: StepDosageProps) {
   // o valor enquanto o usuário está digitando; só resincroniza quando a lista de
   // materiais muda (ex.: troca do cimento ativo no cadastro).
   useEffect(() => {
-    const cimentoDb = dbMaterials.find((m) => m.ativo && (m.tipo === 'cimento' || m.nome.toLowerCase().includes('cimento')));
-    const aditivoDb = dbMaterials.find((m) => m.ativo && (m.tipo === 'aditivo' || m.nome.toLowerCase().includes('aditivo')));
+    const cimentoDb = resolverCimento(data, dbMaterials);
+    const aditivoDb = resolverAditivo(data, dbMaterials);
 
     const updates: Partial<AnalysisFormData> = {};
 
@@ -469,7 +476,7 @@ export function StepDosage({ data, onChange }: StepDosageProps) {
                     />
                     <button
                       type="button"
-                      onClick={() => setAditivoUnidade(u => u === 'mL' ? 'g' : 'mL')}
+                      onClick={() => onChange({ aditivo_unidade: aditivoUnidade === 'mL' ? 'g' : 'mL' })}
                       title="Clique para alternar entre mL e g"
                       className="h-11 px-2 shrink-0 rounded-md border border-border/50 bg-muted text-[9px] font-bold text-muted-foreground uppercase hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors cursor-pointer"
                     >
@@ -477,6 +484,74 @@ export function StepDosage({ data, onChange }: StepDosageProps) {
                     </button>
                   </div>
                 </div>
+              </div>
+
+              {/* Aço da receita (opcional) — segue para o registro de produção */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-1">
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label className="h-4 flex items-center text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+                    Aço <span className="ml-1 normal-case font-medium tracking-normal">(por pista, opcional)</span>
+                  </Label>
+                  <Select
+                    value={data.aco_material_id ?? "none"}
+                    onValueChange={(v) => {
+                      if (v === "none") {
+                        onChange({ aco_material_id: undefined });
+                        return;
+                      }
+                      const m = acoMaterials.find((x) => x.id === v);
+                      onChange({ aco_material_id: v, aco_descricao: m?.nome ?? data.aco_descricao });
+                    }}
+                  >
+                    <SelectTrigger className="h-11 font-semibold bg-background border border-border/50 shadow-none text-sm">
+                      <SelectValue placeholder="Selecione o aço cadastrado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum / digitar descrição</SelectItem>
+                      {acoMaterials.map((m) => (
+                        <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {acoMaterials.length === 0 && (
+                    <p className="text-[10px] text-muted-foreground">
+                      Cadastre o aço em Produtos (tipo "Aço") para usar o preço no custo.
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label className="h-4 flex items-center text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+                    Quantidade de aço
+                  </Label>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="number"
+                      step="0.001"
+                      min="0"
+                      className="h-11 font-black bg-background border border-border/50 focus-visible:ring-primary shadow-none text-sm"
+                      value={data.aco_quantidade || ""}
+                      onChange={(e) => onChange({ aco_quantidade: parseFloat(e.target.value) || 0 })}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => onChange({ aco_unidade: acoUnidade === 'kg' ? 'm' : 'kg' })}
+                      title="Clique para alternar entre kg e m"
+                      className="h-11 px-2 shrink-0 rounded-md border border-border/50 bg-muted text-[9px] font-bold text-muted-foreground uppercase hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors cursor-pointer"
+                    >
+                      {acoUnidade}
+                    </button>
+                  </div>
+                </div>
+                {!data.aco_material_id && (
+                  <div className="space-y-1.5 sm:col-span-4">
+                    <Input
+                      className="h-11 font-semibold bg-background border border-border/50 focus-visible:ring-primary shadow-none text-sm"
+                      placeholder="Descrição do aço (ex.: CP-175 Ø5 mm)"
+                      value={data.aco_descricao ?? ""}
+                      onChange={(e) => onChange({ aco_descricao: e.target.value })}
+                    />
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -20,24 +20,15 @@ import {
   TIPOS_ANALISE,
   ANALISTAS,
   PENEIRAS_PADRAO,
-  getLimitesPadrao,
+  getTipoDosagem,
   type AnalysisFormData,
 } from "@/lib/analysis-data";
 import { useStandardCurves } from "@/hooks/api/useStandardCurves";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Area,
-  ComposedChart,
-} from "recharts";
+import { resolveCurvaReferencia, toCurvaParaGrafico } from "@/lib/curva-referencia";
+import { GranulometryChart } from "./GranulometryChart";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { cn, calcularCustoMaterial, calcularCustoTracoCompleto } from "@/lib/utils";
+import { cn, calcularCustoMaterial, calcularCustoTracoCompleto, resolverCimento, resolverAditivo } from "@/lib/utils";
 import { useAnalysisDraftStore } from "@/store/useAnalysisDraftStore";
 import { useMaterials } from "@/hooks/api/useMaterials";
 
@@ -56,24 +47,13 @@ export function StepResult({ data }: StepResultProps) {
   const { materials: dbMaterials } = useMaterials();
   const { curves: dbCurves } = useStandardCurves();
 
-  const dna = useMemo(() => {
-    const curve =
-      dbCurves.find((c) => c.id === data.dna_selecionado) ??
-      dbCurves.find((c) => c.tipo_produto === data.tipo_analise && c.standard_curve_items?.length) ??
-      dbCurves[0];
-    if (!curve) return undefined;
-    return {
-      id: curve.id,
-      nome: curve.nome,
-      limites: (curve.standard_curve_items ?? []).map((item) => ({
-        sieve_id: item.sieve_id,
-        limite_min: item.limite_min,
-        limite_max: item.limite_max,
-      })),
-    };
-  }, [dbCurves, data.dna_selecionado, data.tipo_analise]);
-
-  const limitesDna = dna?.limites?.length ? dna.limites : getLimitesPadrao(data.tipo_analise);
+  // Faixa e referência: regra única (laje/pré-moldado = faixa fixa; demais = curva do banco).
+  const dna = useMemo(
+    () => resolveCurvaReferencia(data.tipo_analise, dbCurves, data.dna_selecionado),
+    [dbCurves, data.dna_selecionado, data.tipo_analise],
+  );
+  const limitesDna = dna.limites;
+  const tipoDosagem = getTipoDosagem(data.tipo_analise);
   const tipoLabel = TIPOS_ANALISE.find((t) => t.value === data.tipo_analise)?.label ?? "—";
   const analistaLabel = (data.analista || ANALISTAS.find((a) => a.id === data.analista)?.nome) ?? "—";
 
@@ -140,15 +120,10 @@ export function StepResult({ data }: StepResultProps) {
     });
   }, [data, totalKgMateriais]);
 
-  const chartData = curveResults.map((r) => ({
-    label: PENEIRAS_PADRAO.find((p) => p.sieve_id === r.sieve_id)?.label ?? "",
-    acumulado: Math.round(r.pct_acumulado * 10000) / 100,
-    limiteMin: r.limite_min ? Math.round(r.limite_min * 10000) / 100 : undefined,
-    limiteMax: r.limite_max ? Math.round(r.limite_max * 10000) / 100 : undefined,
-    dnAlvo: r.limite_min && r.limite_max
-      ? Math.round(((r.limite_min + r.limite_max) / 2) * 10000) / 100
-      : undefined,
-  }));
+  const curveResultsParaGrafico = useMemo(
+    () => toCurvaParaGrafico(curveResults, tipoDosagem),
+    [curveResults, tipoDosagem],
+  );
 
   const handleExportPDF = async () => {
     setGeneratingPdf(true);
@@ -216,7 +191,7 @@ export function StepResult({ data }: StepResultProps) {
                     </TableCell>
                     <TableCell className="text-right font-bold">
                       {(() => {
-                        const cimentoDb = dbMaterials.find((m) => m.tipo === 'cimento' || m.nome.toLowerCase().includes('cimento'));
+                        const cimentoDb = resolverCimento(data, dbMaterials);
                         const cimento_valor = cimentoDb?.custo_valor ?? cimentoDb?.custo_tonelada ?? data.custo_cimento_ton ?? 0;
                         const cimento_unidade = cimentoDb?.custo_unidade || (cimentoDb?.custo_tonelada != null ? 'tonelada' : 'tonelada');
                         const cimento_densidade = cimentoDb?.densidade || 3.15;
@@ -251,10 +226,10 @@ export function StepResult({ data }: StepResultProps) {
                   {data.aditivos_ml > 0 && (
                     <TableRow>
                       <TableCell className="text-warning">Aditivo</TableCell>
-                      <TableCell className="text-right font-bold text-warning">{data.aditivos_ml} mL</TableCell>
+                      <TableCell className="text-right font-bold text-warning">{data.aditivos_ml} {data.aditivo_unidade ?? "mL"}</TableCell>
                       <TableCell className="text-right font-bold text-warning">
                         {(() => {
-                          const aditivoDb = dbMaterials.find((m) => m.tipo === 'aditivo' || m.nome.toLowerCase().includes('aditivo'));
+                          const aditivoDb = resolverAditivo(data, dbMaterials);
                           const aditivo_valor = aditivoDb?.custo_valor ?? 0;
                           const aditivo_unidade = aditivoDb?.custo_unidade || 'litro';
                           let custoAditivo = 0;
@@ -380,7 +355,7 @@ export function StepResult({ data }: StepResultProps) {
                 {data.aditivos_ml > 0 && (
                   <TableRow>
                     <TableCell className="text-warning">Aditivos</TableCell>
-                    <TableCell className="text-right font-bold text-warning">{data.aditivos_ml} mL</TableCell>
+                    <TableCell className="text-right font-bold text-warning">{data.aditivos_ml} {data.aditivo_unidade ?? "mL"}</TableCell>
                     <TableCell />
                   </TableRow>
                 )}
@@ -420,7 +395,7 @@ export function StepResult({ data }: StepResultProps) {
                 <span className="h-2 w-2 rounded-full bg-primary" />
                 Atual
               </div>
-              {dna && (
+              {limitesDna.length > 0 && (
                 <>
                   <div className="flex items-center gap-1">
                     <span className="h-2 w-2 rounded-full bg-amber-400" />
@@ -437,29 +412,13 @@ export function StepResult({ data }: StepResultProps) {
         </CardHeader>
         <CardContent>
           {/* Exibe o gráfico sempre que a soma das massas retidas for maior que zero */}
-          <ResponsiveContainer width="100%" height={280}>
-            <ComposedChart data={chartData} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
-              <XAxis dataKey="label" fontSize={10} tick={{ fill: "hsl(var(--muted-foreground))" }} reversed />
-              <YAxis domain={[0, 100]} fontSize={10} unit="%" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-              <Tooltip />
-              {dna && (
-                <>
-                  <Area type="monotone" dataKey="limiteMax" stroke="none" fill="hsl(210 100% 60% / 0.12)" fillOpacity={1} isAnimationActive={false} />
-                  <Area type="monotone" dataKey="limiteMin" stroke="none" fill="hsl(var(--card))" fillOpacity={1} isAnimationActive={false} />
-                  <Line type="monotone" dataKey="dnAlvo" stroke="hsl(35 92% 50%)" strokeWidth={2} strokeDasharray="8 4" dot={false} name="Ideal" />
-                </>
-              )}
-              <Line
-                type="monotone"
-                dataKey="acumulado"
-                stroke="hsl(var(--chart-primary))"
-                strokeWidth={3}
-                dot={{ r: 4, fill: "hsl(var(--chart-primary))", stroke: "hsl(var(--card))", strokeWidth: 2 }}
-                name="Atual"
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
+          <GranulometryChart
+            curveResults={curveResultsParaGrafico}
+            hasLimits={limitesDna.length > 0}
+            tipoDosagem={tipoDosagem}
+            height={280}
+            compact
+          />
         </CardContent>
       </Card>
 

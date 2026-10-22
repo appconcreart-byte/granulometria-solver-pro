@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ import { useAnalyses } from "@/hooks/api/useAnalyses";
 import { useProduction } from "@/hooks/api/useProduction";
 import { useRuptures } from "@/hooks/api/useRuptures";
 import { useCostMetrics } from "@/hooks/api/useCostMetrics";
+import { SEGMENTOS, type Segmento } from "@/lib/cost-metrics";
 import { useAuth } from "@/hooks/useAuth";
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -88,7 +89,10 @@ const Dashboard = () => {
   const { analyses, isLoading: loadingAnalyses } = useAnalyses();
   const { batches, isLoadingBatches: loadingBatches } = useProduction();
   const { schedules, isLoadingSchedules } = useRuptures();
-  const costMetrics = useCostMetrics();
+  // Custos separados por segmento (Lajes x Pré-moldados), no ano corrente
+  const costSegmentos = useCostMetrics({ year: String(new Date().getFullYear()), month: "00" });
+  const [costSeg, setCostSeg] = useState<Segmento>("laje");
+  const costMetrics = costSegmentos[costSeg];
 
   const greeting = useMemo(() => getGreeting(), []);
   const dateStr = useMemo(() => getFormattedDate(), []);
@@ -153,18 +157,27 @@ const Dashboard = () => {
         color: "text-primary",
         iconBg: "bg-primary/10",
       },
-      {
-        title: "Custo Médio / m³",
-        value: costMetrics.mediaCustoM3 > 0 ? `R$${costMetrics.mediaCustoM3.toFixed(0)}` : "—",
-        change: costMetrics.variacaoMensal !== 0 ? `${costMetrics.variacaoMensal > 0 ? "+" : ""}${costMetrics.variacaoMensal.toFixed(0)}% vs mês ant.` : "Sem dados",
-        up: costMetrics.variacaoMensal <= 0,
-        icon: DollarSign,
-        progress: Math.min(100, costMetrics.mediaCustoM3 > 0 ? 75 : 0),
-        color: "text-primary",
-        iconBg: "bg-primary/10",
-      }
+      ...SEGMENTOS.map(({ value, label }) => {
+        const c = costSegmentos[value];
+        const real = c.custoM3Real != null && c.custoM3Real > 0;
+        const valor = real ? c.custoM3Real! : c.custoM3Previsto;
+        return {
+          title: `Custo / m³ · ${label}`,
+          value: valor > 0 ? `R$${valor.toFixed(0)}` : "—",
+          change: !real
+            ? (valor > 0 ? "previsto" : "Sem dados")
+            : c.variacaoMensal !== 0
+              ? `real · ${c.variacaoMensal > 0 ? "+" : ""}${c.variacaoMensal.toFixed(0)}% vs mês ant.`
+              : "real",
+          up: !real || c.variacaoMensal <= 0,
+          icon: DollarSign,
+          progress: Math.min(100, valor > 0 ? 75 : 0),
+          color: "text-primary",
+          iconBg: "bg-primary/10",
+        };
+      }),
     ];
-  }, [analyses, batches, schedules, today]);
+  }, [analyses, batches, schedules, today, costSegmentos]);
 
   // 2. Gráfico de Barras (Últimas 5 análises com meta — apenas previsto, sem simulação)
   const realBarData = useMemo(() => {
@@ -211,7 +224,7 @@ const Dashboard = () => {
     }));
   }, [analyses]);
 
-  const KPI_ACCENT_COLORS = [BRAND_RED, BRAND_RED_MED, BRAND_RED_LIGHT, BRAND_RED, BRAND_RED_MED];
+  const KPI_ACCENT_COLORS = [BRAND_RED, BRAND_RED_MED, BRAND_RED_LIGHT, BRAND_RED, BRAND_RED_MED, BRAND_RED_LIGHT];
 
   if (loadingAnalyses || loadingBatches || isLoadingSchedules) {
     return (
@@ -261,7 +274,7 @@ const Dashboard = () => {
       </div>
 
       {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {realKpis.map((kpi, index) => (
           <Card key={kpi.title} className="kpi-card animate-slide-up shadow-sm border-border hover:shadow-md transition-shadow overflow-hidden">
             {/* Barra de acento lateral */}
@@ -376,14 +389,26 @@ const Dashboard = () => {
             Evolução de Custos (Últimos 6 Meses)
           </CardTitle>
           <div className="flex items-center gap-3 flex-wrap">
+            <div className="inline-flex rounded-md bg-muted p-0.5">
+              {SEGMENTOS.map((s) => (
+                <button
+                  key={s.value}
+                  type="button"
+                  onClick={() => setCostSeg(s.value)}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded transition-colors ${costSeg === s.value ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-sm" style={{ background: BRAND_RED }} />
-                R$ Total
+                Custo real
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-sm" style={{ background: BRAND_RED_LIGHT }} />
-                Nº Lotes
+                <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "hsl(var(--muted-foreground) / 0.35)" }} />
+                Estimado
               </span>
             </div>
             <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground hover:text-primary gap-1" asChild>
@@ -396,22 +421,35 @@ const Dashboard = () => {
         <CardContent className="pt-2">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
             <div className="rounded-lg border bg-muted/20 p-3 text-center">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Mês Atual</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Mês Atual (real)</p>
               <p className="text-xl font-black text-foreground mt-1">
-                {costMetrics.custoMesAtual > 0 ? `R$ ${costMetrics.custoMesAtual.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
+                {costMetrics.custoRealMesAtual > 0 ? `R$ ${costMetrics.custoRealMesAtual.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
               </p>
+              {costMetrics.custoEstimadoMesAtual > 0 && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  + R$ {costMetrics.custoEstimadoMesAtual.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} estimado
+                </p>
+              )}
             </div>
             <div className="rounded-lg border bg-muted/20 p-3 text-center">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Acumulado Ano</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Acumulado Ano (real)</p>
               <p className="text-xl font-black text-foreground mt-1">
-                {costMetrics.custoAnoAtual > 0 ? `R$ ${costMetrics.custoAnoAtual.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
+                {costMetrics.custoRealAno > 0 ? `R$ ${costMetrics.custoRealAno.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
               </p>
+              {costMetrics.custoEstimadoAno > 0 && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  + R$ {costMetrics.custoEstimadoAno.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} estimado
+                </p>
+              )}
             </div>
             <div className="rounded-lg border bg-muted/20 p-3 text-center">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Média R$/m³</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Média R$/m³ (real)</p>
               <p className="text-xl font-black text-foreground mt-1">
-                {costMetrics.mediaCustoM3 > 0 ? `R$ ${costMetrics.mediaCustoM3.toFixed(2)}` : "—"}
+                {costMetrics.custoM3Real != null ? `R$ ${costMetrics.custoM3Real.toFixed(2)}` : "—"}
               </p>
+              {costMetrics.custoM3Real == null && costMetrics.custoM3Previsto > 0 && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">previsto R$ {costMetrics.custoM3Previsto.toFixed(2)}</p>
+              )}
             </div>
           </div>
           <ResponsiveContainer width="100%" height={200}>
@@ -427,23 +465,22 @@ const Dashboard = () => {
                     <div className="rounded-lg border border-border bg-white dark:bg-card shadow-lg px-4 py-3 text-sm min-w-[160px]">
                       <p className="font-bold text-foreground mb-2">{label}</p>
                       {payload.map((p: any) => (
-                        <div key={p.name} className="flex items-center justify-between gap-4">
+                        <div key={p.dataKey} className="flex items-center justify-between gap-4">
                           <span className="flex items-center gap-1.5 text-muted-foreground">
                             <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: p.fill || p.color }} />
-                            {p.name === "totalBatelada" ? "R$ Total" : "Lotes"}
+                            {p.dataKey === "real" ? "Real" : "Estimado"}
                           </span>
-                          <span className="font-semibold text-foreground">
-                            {p.name === "totalBatelada" ? `R$ ${Number(p.value).toFixed(2)}` : p.value}
-                          </span>
+                          <span className="font-semibold text-foreground">R$ {Number(p.value).toFixed(2)}</span>
                         </div>
                       ))}
+                      <p className="mt-1 text-xs text-muted-foreground">{payload[0]?.payload?.batchCount ?? 0} lote(s)</p>
                     </div>
                   );
                 }}
                 cursor={{ fill: "hsl(var(--muted))" }}
               />
-              <Bar dataKey="totalBatelada" fill={BRAND_RED} radius={[4, 4, 0, 0]} maxBarSize={36} />
-              <Bar dataKey="batchCount" fill={BRAND_RED_LIGHT} radius={[4, 4, 0, 0]} maxBarSize={36} />
+              <Bar dataKey="real" stackId="c" fill={BRAND_RED} maxBarSize={36} />
+              <Bar dataKey="estimado" stackId="c" fill="hsl(var(--muted-foreground) / 0.35)" radius={[4, 4, 0, 0]} maxBarSize={36} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

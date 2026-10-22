@@ -23,7 +23,8 @@ import {
   RefreshCw,
   MessageCircle,
 } from "lucide-react";
-import { TIPOS_ANALISE, getLimitesPadrao, getTipoDosagem } from "@/lib/analysis-data";
+import { TIPOS_ANALISE, getTipoDosagem } from "@/lib/analysis-data";
+import { resolveCurvaReferencia } from "@/lib/curva-referencia";
 import { generateOnePagePDF } from "@/lib/pdf-generator";
 import { useQualityReportStorage } from "@/hooks/useQualityReportStorage";
 import { statusConfig } from "@/components/StatusBadge";
@@ -237,23 +238,12 @@ const QualityReportPage = () => {
     }));
   }, [materials]);
 
-  const limitesDNA = useMemo(() => {
-    // dna_selecionado não é salvo no DB — busca por tipo_produto compatível com a análise
-    const tipoAnalise = analysis?.tipo;
-    const curve =
-      dbCurves.find((c) => c.tipo_produto === tipoAnalise && c.standard_curve_items?.length) ??
-      dbCurves.find((c) => c.tipo_produto === "geral" && c.standard_curve_items?.length) ??
-      dbCurves.find((c) => c.standard_curve_items?.length);
-    if (curve?.standard_curve_items?.length) {
-      return curve.standard_curve_items.map((item) => ({
-        sieve_id: item.sieve_id,
-        limite_min: item.limite_min,
-        limite_max: item.limite_max,
-      }));
-    }
-    // Fallback: limites normativos padrão por tipo, igual ao StepGranulometry
-    return getLimitesPadrao(tipoAnalise);
-  }, [analysis, dbCurves]);
+  // dna_selecionado não é salvo no DB — a faixa vem da regra única por tipo de análise
+  // (laje/pré-moldado = faixa fixa; demais = curva do banco compatível).
+  const limitesDNA = useMemo(
+    () => resolveCurvaReferencia(analysis?.tipo, dbCurves).limites,
+    [analysis, dbCurves],
+  );
 
   const combinedCurve = useMemo(() => {
     if (materiaisParaCurva.length === 0) return [];

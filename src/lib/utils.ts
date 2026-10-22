@@ -36,9 +36,52 @@ export function calcularCustoMaterial({
     case 'unidade':
       // Considera 1 unidade = 1kg (ajuste se necessário)
       return custo_valor * quantidade;
+    case 'metro':
+      // Aço vendido por metro: quantidade em metros
+      return custo_valor * quantidade;
     default:
       return (custo_valor / 1000) * quantidade;
   }
+}
+
+const temPreco = (m: any) => (m?.custo_valor ?? m?.custo_tonelada ?? 0) > 0;
+
+function escolherMaterial(
+  formData: any,
+  dbMaterials: any[],
+  idEscolhido: string | undefined,
+  ehDoTipo: (m: any) => boolean,
+) {
+  const lista = dbMaterials ?? [];
+  const escolhido = idEscolhido ? lista.find((m) => m.id === idEscolhido) : undefined;
+  if (escolhido) return escolhido;
+  // Sem marca escolhida: prefere o ativo com preço (evita pegar um cimento arquivado/sem preço)
+  const candidatos = lista.filter(ehDoTipo);
+  return (
+    candidatos.find((m) => m.ativo !== false && temPreco(m)) ??
+    candidatos.find(temPreco) ??
+    candidatos[0]
+  );
+}
+
+/** Cimento da análise: a marca escolhida; senão o cimento ativo com preço. */
+export function resolverCimento(formData: any, dbMaterials: any[]) {
+  return escolherMaterial(
+    formData,
+    dbMaterials,
+    formData?.cimento_marca_id,
+    (m) => m.tipo === 'cimento' || m.nome?.toLowerCase().includes('cimento'),
+  );
+}
+
+/** Aditivo da análise: a marca escolhida; senão o aditivo ativo com preço. */
+export function resolverAditivo(formData: any, dbMaterials: any[]) {
+  return escolherMaterial(
+    formData,
+    dbMaterials,
+    formData?.aditivo_marca_id,
+    (m) => m.tipo === 'aditivo' || m.nome?.toLowerCase().includes('aditivo'),
+  );
 }
 
 /**
@@ -62,8 +105,8 @@ export function calcularCustoTracoCompleto({
   let agregadosBatelada = 0;
   let aditivoBatelada = 0;
 
-  // Cimento
-  const cimentoDb = dbMaterials?.find((m) => m.tipo === 'cimento' || m.nome?.toLowerCase().includes('cimento'));
+  // Cimento — a marca escolhida na análise tem prioridade
+  const cimentoDb = resolverCimento(formData, dbMaterials);
   const cimento_valor = cimentoDb?.custo_valor ?? cimentoDb?.custo_tonelada ?? formData?.custo_cimento_ton ?? 0;
   const cimento_unidade = cimentoDb?.custo_unidade || (cimentoDb?.custo_tonelada != null ? 'tonelada' : 'tonelada');
   const cimento_densidade = cimentoDb?.densidade || formData?.densidade_cimento || 3.15;
@@ -89,7 +132,7 @@ export function calcularCustoTracoCompleto({
 
   // Aditivo
   if (formData?.aditivos_ml > 0) {
-    const aditivoDb = dbMaterials?.find((m) => m.tipo === 'aditivo' || m.nome?.toLowerCase().includes('aditivo'));
+    const aditivoDb = resolverAditivo(formData, dbMaterials);
     const aditivo_valor = aditivoDb?.custo_valor ?? 0;
     if (aditivo_valor && formData?.aditivos_ml) {
       aditivoBatelada = aditivo_valor * (formData.aditivos_ml / 1000);

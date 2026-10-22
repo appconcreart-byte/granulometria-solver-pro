@@ -21,6 +21,11 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ViewRuptureResultModal } from "../rupture/ViewRuptureResultModal";
 import { calcPerda } from "@/lib/production-loss";
+import { PlannedRecipeTable, RealRecipeEditor, RecipeComparisonTable } from "./RecipeTables";
+import { buildPlannedRecipe, buildReceitaReal, parseQtd } from "@/lib/production-recipe";
+import { comPrecos, resolvePrecos } from "@/lib/production-cost";
+import { useMaterials } from "@/hooks/api/useMaterials";
+import { getConfigMisturador } from "@/lib/analysis-data";
 
 interface ViewProductionModalProps {
   open: boolean;
@@ -77,10 +82,15 @@ export function ViewProductionModal({ open, onOpenChange, analysis, batch }: Vie
   const [editedCode, setEditedCode] = useState("");
   const [isEditingDate, setIsEditingDate] = useState(false);
   const [editedDate, setEditedDate] = useState("");
-  const { deleteBatch, updateBatchCode, updateBatchDate, isDeleting, isUpdatingBatchCode, isUpdatingBatchDate } = useProduction();
+  const { deleteBatch, updateBatchCode, updateBatchDate, updateBatchRecipe, isDeleting, isUpdatingBatchCode, isUpdatingBatchDate, isUpdatingBatchRecipe } = useProduction();
+  const { materials: dbMaterials } = useMaterials();
+  const [isEditingRecipe, setIsEditingRecipe] = useState(false);
+  const [editNTracos, setEditNTracos] = useState("");
+  const [editValues, setEditValues] = useState<Record<string, string>>({});
   const { settings } = useTechnicalSettings();
   const { profile } = useAuth();
   const canEditBatchCode = profile?.role ? hasActionPermission(profile.role, "batch:edit_code") : false;
+  const canEditRecipe = profile?.role ? hasActionPermission(profile.role, "batch:edit_recipe") : false;
 
   const handleSaveBatchDate = async () => {
     if (!batch || !editedDate) return;
@@ -118,31 +128,56 @@ export function ViewProductionModal({ open, onOpenChange, analysis, batch }: Vie
     }
   };
 
+  const startEditRecipe = () => {
+    if (!batch) return;
+    setEditNTracos(batch.n_tracos ? String(batch.n_tracos) : "");
+    const values: Record<string, string> = {};
+    for (const i of batch.receita_real?.itens ?? []) {
+      if (i.real != null) values[i.chave] = String(i.real).replace(".", ",");
+    }
+    setEditValues(values);
+    setIsEditingRecipe(true);
+  };
+
+  const handleSaveRecipe = async () => {
+    if (!batch || !analysis) return;
+    const n = parseQtd(editNTracos);
+    if (editNTracos.trim() !== "" && (n == null || !Number.isInteger(n) || n < 1)) {
+      toast.error("Nº de traços deve ser um número inteiro maior que zero");
+      return;
+    }
+    const planejada = buildPlannedRecipe(analysis.formData);
+    const base = buildReceitaReal(planejada, n, editValues);
+    const receita = base
+      ? comPrecos(base, resolvePrecos(planejada, analysis.formData, dbMaterials ?? []), batch.receita_real)
+      : null;
+    try {
+      await updateBatchRecipe({ id: batch.id, n_tracos: n, receita_real: receita });
+      toast.success("Receita real atualizada com sucesso!");
+      setIsEditingRecipe(false);
+    } catch (err: any) {
+      toast.error("Erro ao salvar a receita real", { description: err?.message });
+    }
+  };
+
   if (!analysis) return null;
-  const tipoLabel = TIPOS_ANALISE.find((t) => t.value === analysis.tipo_analise)?.label ?? "—";
+  const tipoAnalise: string = analysis.tipo ?? analysis.tipo_analise; // StoredAnalysis (banco) usa `tipo`
+  const tipoLabel = TIPOS_ANALISE.find((t) => t.value === tipoAnalise)?.label ?? "—";
 
-  // Receita calculada diretamente dos dados da análise, sem calcDosage
-  const recipe = useMemo(() => {
-    if (!batch) return null;
+  // Preços na edição: o que já está gravado no lote vale; o que falta vem do cadastro atual
+  const precosEdicao = useMemo(() => {
+    const atuais = resolvePrecos(buildPlannedRecipe(analysis.formData), analysis.formData, dbMaterials ?? []);
+    for (const i of batch?.receita_real?.itens ?? []) if (i.preco) atuais[i.chave] = i.preco;
+    return atuais;
+  }, [analysis, batch, dbMaterials]);
+
+  // Receita prevista (da análise), na escala do volume do lote, para lotes sem receita real
+  const plannedRecipe = useMemo(() => {
+    if (!batch) return [];
     const fd = analysis.formData;
-    const volProdL = batch.volume_produzido; // Litros
-    const volOrigL = (fd.volume_m3 || 0.55) * 1000; // Litros
-    const scale = volOrigL > 0 ? volProdL / volOrigL : 1;
-
-    const cimento_kg = (fd.consumo_alvo_m3 || 0) * scale;
-    const agua_l = cimento_kg * (fd.relacao_ac || 0);
-    const materiais = (fd.materiais_selecionados ?? []).map((m: any) => ({
-      nome: m.nome,
-      kg: Math.round((m.proporcao_kg ?? 0) * scale * 10) / 10,
-    }));
-    const aditivos_ml = Math.round((fd.aditivos_ml || 0) * scale * 10) / 10;
-
-    return {
-      consumo_cimento_batelada: Math.round(cimento_kg * 100) / 100,
-      agua_batelada: Math.round(agua_l * 100) / 100,
-      materiais_batelada: materiais,
-      aditivos_batelada_ml: aditivos_ml,
-    };
+    const volOrigL = (fd.volume_m3 || 0.55) * 1000;
+    const scale = volOrigL > 0 && batch.volume_produzido ? batch.volume_produzido / volOrigL : 1;
+    return buildPlannedRecipe(fd).map((i) => ({ ...i, previsto: Math.round(i.previsto * scale * 100) / 100 }));
   }, [analysis, batch]);
 
   return (
@@ -336,43 +371,63 @@ export function ViewProductionModal({ open, onOpenChange, analysis, batch }: Vie
                 </p>
               )}
 
-              {recipe && (
-                <div className="pt-2">
-                  <h4 className="font-semibold text-foreground mb-2 text-xs uppercase tracking-wider">Receita Utilizada</h4>
-                  <div className="rounded-md border bg-muted/20 overflow-hidden">
-                    <table className="w-full text-[11px]">
-                      <thead>
-                        <tr className="bg-muted/50 border-b">
-                          <th className="text-left py-1 px-3 font-bold">Material</th>
-                          <th className="text-right py-1 px-3 font-bold">Peso</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        <tr>
-                          <td className="py-1 px-3">Cimento</td>
-                          <td className="py-1 px-3 text-right font-black">{recipe.consumo_cimento_batelada.toFixed(2)} kg</td>
-                        </tr>
-                        {recipe.materiais_batelada.map((m) => (
-                          <tr key={m.nome}>
-                            <td className="py-1 px-3 text-muted-foreground">{m.nome}</td>
-                            <td className="py-1 px-3 text-right font-bold">{m.kg.toFixed(2)} kg</td>
-                          </tr>
-                        ))}
-                        {recipe.aditivos_batelada_ml > 0 && (
-                          <tr>
-                            <td className="py-1 px-3 text-muted-foreground">Aditivo</td>
-                            <td className="py-1 px-3 text-right font-bold">{recipe.aditivos_batelada_ml.toFixed(1)} mL</td>
-                          </tr>
-                        )}
-                        <tr className="text-blue-600 dark:text-blue-400">
-                          <td className="py-1 px-3">Água</td>
-                          <td className="py-1 px-3 text-right font-black">{recipe.agua_batelada.toFixed(2)} L</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+              <div className="pt-2 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="font-semibold text-foreground text-xs uppercase tracking-wider">
+                    {batch.receita_real ? "Receita Real Utilizada" : "Receita Utilizada"}
+                    {batch.n_tracos ? <span className="ml-2 normal-case font-medium text-muted-foreground">{batch.n_tracos} traço(s)</span> : null}
+                  </h4>
+                  {canEditRecipe && !isEditingRecipe && (
+                    <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" onClick={startEditRecipe}>
+                      <Pencil className="h-3 w-3" />
+                      {batch.receita_real ? "Editar receita real" : "Informar receita real"}
+                    </Button>
+                  )}
                 </div>
-              )}
+
+                {isEditingRecipe ? (
+                  <div className="space-y-3">
+                    <div className="flex items-end justify-between gap-3">
+                      <p className="text-[11px] text-muted-foreground">
+                        Informe a soma de todos os traços da pista. Os números em cinza são o previsto; deixe em branco o que não quiser informar.
+                      </p>
+                      <div className="space-y-1 w-28 shrink-0">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Nº de traços</span>
+                        <Input
+                          inputMode="numeric"
+                          value={editNTracos}
+                          onChange={(e) => setEditNTracos(e.target.value.replace(/[^0-9]/g, ""))}
+                          placeholder="1"
+                          className="h-8 text-sm text-right font-bold"
+                        />
+                      </div>
+                    </div>
+                    <RealRecipeEditor
+                      planned={buildPlannedRecipe(analysis.formData)}
+                      nTracos={parseQtd(editNTracos)}
+                      values={editValues}
+                      onChange={(chave, v) => setEditValues((prev) => ({ ...prev, [chave]: v }))}
+                      precos={precosEdicao}
+                      volumeM3={batch.volume_concreto_m3}
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setIsEditingRecipe(false)} disabled={isUpdatingBatchRecipe}>
+                        Cancelar
+                      </Button>
+                      <Button size="sm" onClick={handleSaveRecipe} disabled={isUpdatingBatchRecipe}>
+                        {isUpdatingBatchRecipe ? "Salvando..." : "Salvar receita real"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : batch.receita_real ? (
+                  <RecipeComparisonTable itens={batch.receita_real.itens} volumeM3={batch.volume_concreto_m3} nTracos={batch.n_tracos} />
+                ) : (
+                  <>
+                    <PlannedRecipeTable items={plannedRecipe} capacidadeKg={getConfigMisturador(tipoAnalise).capacidade_kg} />
+                    <p className="text-[11px] text-muted-foreground">Receita real não informada para este lote.</p>
+                  </>
+                )}
+              </div>
 
               <h4 className="font-semibold text-foreground pt-2">Cronograma de Rompimentos</h4>
               <div className="grid grid-cols-4 gap-2">

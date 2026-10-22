@@ -41,7 +41,7 @@ function normalizeTipoAmostra(tipo: string | null | undefined): TipoAmostra | nu
   if (tipo === "bloco_estrutural" || tipo === "bloco_vedacao") return "bloco";
   if (tipo === "paver") return "paver";
   // Ainda não fazemos ensaio de rompimento específico para Laje — tratar como Corpo de Prova (CP)
-  if (tipo === "cp" || tipo === "laje") return "cp";
+  if (tipo === "cp" || tipo === "laje" || tipo === "pre_moldado") return "cp";
   return null;
 }
 

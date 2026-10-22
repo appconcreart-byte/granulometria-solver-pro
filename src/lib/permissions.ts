@@ -27,6 +27,8 @@ export const ACTION_PERMISSIONS: Record<string, UserRole[]> = {
   "batch:create": ["ADMIN", "PRODUCAO"],
   "batch:view": ["ADMIN", "PRODUCAO", "VENDAS", "GERENTE", "LABORATORIO"],
   "batch:edit_code": ["ADMIN"],
+  // Informar/corrigir a receita real utilizada (pesagem) de um lote
+  "batch:edit_recipe": ["ADMIN", "PRODUCAO"],
 
   // Apenas ADMIN e LABORATORIO podem gerenciar rompimentos
   "rupture:complete": ["ADMIN", "LABORATORIO"],

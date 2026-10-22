@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "../useAuth";
 import type { BatchStatus } from "@/types/database.types";
 import type { ScheduleStatus } from "@/hooks/api/useRuptures";
+import type { ReceitaReal } from "@/lib/production-recipe";
 
 export interface DBProductionBatch {
   id: string;
@@ -17,6 +18,8 @@ export interface DBProductionBatch {
   pista: string | null;
   fios: number | null;
   metros_perda: number | null;
+  n_tracos: number | null;
+  receita_real: ReceitaReal | null;
   status: BatchStatus;
   notas: string | null;
   produced_at: string;
@@ -96,6 +99,8 @@ export function useProduction() {
       pista: string;
       fios: number;
       metros_perda: number;
+      n_tracos?: number | null;
+      receita_real?: ReceitaReal | null;
       notas: string | null;
       produced_at: string;
     }) => {
@@ -116,6 +121,9 @@ export function useProduction() {
           pista: batchData.pista,
           fios: batchData.fios,
           metros_perda: batchData.metros_perda,
+          // Só envia quando informados (lotes sem receita real não dependem das colunas novas)
+          ...(batchData.n_tracos ? { n_tracos: batchData.n_tracos } : {}),
+          ...(batchData.receita_real ? { receita_real: batchData.receita_real } : {}),
           status: "aguardando_rompimentos",
           notas: batchData.notas,
           produced_at: batchData.produced_at,
@@ -175,6 +183,23 @@ export function useProduction() {
     },
   });
 
+  const updateBatchRecipeMutation = useMutation({
+    mutationFn: async ({ id, n_tracos, receita_real }: { id: string; n_tracos: number | null; receita_real: ReceitaReal | null }) => {
+      const { data, error } = await supabase
+        .from("production_batches")
+        .update({ n_tracos, receita_real })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["production_batches", orgId] });
+    },
+  });
+
   const deleteBatchMutation = useMutation({
     mutationFn: async (batchId: string) => {
       const { error } = await supabase
@@ -196,9 +221,11 @@ export function useProduction() {
     deleteBatch: deleteBatchMutation.mutateAsync,
     updateBatchCode: updateBatchCodeMutation.mutateAsync,
     updateBatchDate: updateBatchDateMutation.mutateAsync,
+    updateBatchRecipe: updateBatchRecipeMutation.mutateAsync,
     isCreating: createBatchMutation.isPending,
     isDeleting: deleteBatchMutation.isPending,
     isUpdatingBatchCode: updateBatchCodeMutation.isPending,
     isUpdatingBatchDate: updateBatchDateMutation.isPending,
+    isUpdatingBatchRecipe: updateBatchRecipeMutation.isPending,
   };
 }

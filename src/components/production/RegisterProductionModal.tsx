@@ -14,6 +14,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { calcPerda, PISTAS, FIOS_OPCOES, COMPRIMENTO_PISTA_M } from "@/lib/production-loss";
 import { ClipboardList } from "lucide-react";
+import { PlannedRecipeTable, RealRecipeEditor } from "./RecipeTables";
+import { buildPlannedRecipe, buildReceitaReal, parseQtd } from "@/lib/production-recipe";
+import { comPrecos, resolvePrecos } from "@/lib/production-cost";
+import { useMaterials } from "@/hooks/api/useMaterials";
+import { getConfigMisturador } from "@/lib/analysis-data";
 import { toast } from "sonner";
 import { useProduction } from "@/hooks/api/useProduction";
 import type { StoredAnalysis } from "@/hooks/api/useAnalyses";
@@ -30,6 +35,7 @@ function generateBatchCode() {
 
 export function RegisterProductionModal({ open, onOpenChange, analysis }: RegisterProductionModalProps) {
   const { createBatch, isCreating } = useProduction();
+  const { materials: dbMaterials } = useMaterials();
 
   const [batchCode, setBatchCode] = useState(generateBatchCode);
   const [operador, setOperador] = useState("");
@@ -39,8 +45,8 @@ export function RegisterProductionModal({ open, onOpenChange, analysis }: Regist
 
   const [dataProducao, setDataProducao] = useState(toLocalDateTimeInput(new Date()));
   const [observacoes, setObservacoes] = useState("");
-  const [aguaKg, setAguaKg] = useState<string>("");
-  const [aditivoMl, setAditivoMl] = useState<string>("");
+  const [nTracos, setNTracos] = useState<string>("");
+  const [realValues, setRealValues] = useState<Record<string, string>>({});
   const [pista, setPista] = useState<string>("");
   const [fios, setFios] = useState<string>("");
   const [metrosPerda, setMetrosPerda] = useState<string>("0");
@@ -58,42 +64,20 @@ export function RegisterProductionModal({ open, onOpenChange, analysis }: Regist
     }
   }, [analysis?.id]);
 
-  // Receita calculada diretamente dos valores da análise, sem escala
-  const recipe = useMemo(() => {
-    if (!analysis) return null;
-    const fd = analysis.formData;
-    const cimento_kg = fd.consumo_alvo_m3 || 0;
-    const agua_l = cimento_kg * (fd.relacao_ac || 0);
-    const materiais = (fd.materiais_selecionados ?? []).map((m: any) => ({
-      nome: m.nome,
-      kg: Math.round((m.proporcao_kg ?? 0) * 10) / 10,
-    }));
-    const aditivos_ml = Math.round((fd.aditivos_ml || 0) * 10) / 10;
-    const totalKg = Math.round((cimento_kg + materiais.reduce((s: number, m: any) => s + m.kg, 0) + agua_l + aditivos_ml / 1000) * 10) / 10;
-
-    return {
-      consumo_cimento_batelada: Math.round(cimento_kg * 100) / 100,
-      agua_batelada: Math.round(agua_l * 100) / 100,
-      materiais_batelada: materiais,
-      aditivos_batelada_ml: aditivos_ml,
-      massa_total_batelada: totalKg,
-    };
-  }, [analysis]);
-
+  // Novo lote → receita real e nº de traços começam em branco
   useEffect(() => {
-    if (recipe) {
-      setAguaKg(recipe.agua_batelada.toFixed(2));
-      setAditivoMl(recipe.aditivos_batelada_ml.toFixed(1));
-    }
-  }, [recipe]);
+    setNTracos("");
+    setRealValues({});
+  }, [analysis?.id]);
 
-  const totalBatelada = useMemo(() => {
-    if (!recipe) return 0;
-    const agua = Number(aguaKg) || 0;
-    const aditivo = Number(aditivoMl) || 0;
-    const materiaisTotal = recipe.materiais_batelada.reduce((s: number, m: any) => s + m.kg, 0);
-    return Math.round((recipe.consumo_cimento_batelada + materiaisTotal + agua + aditivo / 1000) * 10) / 10;
-  }, [recipe, aguaKg, aditivoMl]);
+  // Receita prevista (1 traço), vinda da análise: cimento, agregados, água, aditivo e aço
+  const planned = useMemo(() => (analysis ? buildPlannedRecipe(analysis.formData) : []), [analysis]);
+
+  // Preços atuais do cadastro de Produtos para cada item (gravados no lote ao salvar)
+  const precos = useMemo(
+    () => (analysis ? resolvePrecos(planned, analysis.formData, dbMaterials ?? []) : {}),
+    [analysis, planned, dbMaterials],
+  );
 
   if (!analysis) return null;
 
@@ -133,6 +117,14 @@ export function RegisterProductionModal({ open, onOpenChange, analysis }: Regist
       return;
     }
 
+    const nTracosNum = parseQtd(nTracos);
+    if (nTracos.trim() !== "" && (nTracosNum == null || !Number.isInteger(nTracosNum) || nTracosNum < 1)) {
+      toast.error("Nº de traços deve ser um número inteiro maior que zero");
+      return;
+    }
+    const receitaBase = buildReceitaReal(planned, nTracosNum, realValues);
+    const receitaReal = receitaBase ? comPrecos(receitaBase, precos) : null;
+
     try {
       await createBatch({
         analysis_id: analysis.id,
@@ -144,6 +136,8 @@ export function RegisterProductionModal({ open, onOpenChange, analysis }: Regist
         pista,
         fios: Number(fios),
         metros_perda: metrosPerdaNum,
+        n_tracos: nTracosNum,
+        receita_real: receitaReal,
         notas: observacoes,
         produced_at: new Date(dataProducao).toISOString(),
       });
@@ -169,11 +163,13 @@ export function RegisterProductionModal({ open, onOpenChange, analysis }: Regist
     setFios("");
     setMetrosPerda("0");
     setVolumeConcreto("");
+    setNTracos("");
+    setRealValues({});
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ClipboardList className="h-5 w-5 text-primary" />
@@ -301,80 +297,48 @@ export function RegisterProductionModal({ open, onOpenChange, analysis }: Regist
             </div>
           </div>
 
-          {recipe && (
-            <div className="space-y-2">
-              <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                Receita de Pesagem (Misturador)
-              </Label>
-              <div className="rounded-md border overflow-hidden">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="bg-muted/50 border-b">
-                      <th className="text-left py-1.5 px-3 font-black uppercase">Material</th>
-                      <th className="text-right py-1.5 px-3 font-black uppercase text-primary">Peso (kg)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    <tr>
-                      <td className="py-1.5 px-3 font-bold">Cimento</td>
-                      <td className="py-1.5 px-3 text-right font-black text-primary">
-                        {recipe.consumo_cimento_batelada.toFixed(2)} kg
-                      </td>
-                    </tr>
-                    {recipe.materiais_batelada.map((m) => (
-                      <tr key={m.nome}>
-                        <td className="py-1.5 px-3 text-muted-foreground">{m.nome}</td>
-                        <td className="py-1.5 px-3 text-right font-bold">{m.kg.toFixed(2)} kg</td>
-                      </tr>
-                    ))}
-                    {recipe.aditivos_batelada_ml > 0 && (
-                      <tr>
-                        <td className="py-1.5 px-3 text-muted-foreground">Aditivo</td>
-                        <td className="py-1 px-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Input
-                              type="number"
-                              value={aditivoMl}
-                              onChange={(e) => setAditivoMl(e.target.value)}
-                              className="w-16 h-6 text-xs text-right font-bold border-muted-foreground/30 pr-0"
-                              step="0.1"
-                            />
-                            <span className="inline-block w-5 text-left text-xs font-bold text-muted-foreground">mL</span>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                    <tr className="bg-blue-50/30 dark:bg-blue-950/20">
-                      <td className="py-1.5 px-3 font-bold text-blue-600 dark:text-blue-400">Água</td>
-                      <td className="py-1 px-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Input
-                            type="number"
-                            value={aguaKg}
-                            onChange={(e) => setAguaKg(e.target.value)}
-                            className="w-16 h-6 text-xs text-right font-black text-blue-600 dark:text-blue-400 border-blue-300 pr-0"
-                            step="0.01"
-                          />
-                          <span className="inline-block w-5 text-left text-xs font-black text-blue-600 dark:text-blue-400">L</span>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr className="bg-muted/30 font-black">
-                      <td className="py-2 px-3 uppercase">Total Batelada</td>
-                      <td className="py-2 px-3 text-right text-sm">
-                        {totalBatelada.toFixed(1)} kg
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              {totalBatelada > 550 && (
-                <p className="text-[10px] text-destructive font-bold animate-pulse">
-                  ⚠️ ATENÇÃO: Massa total excede a capacidade de 550kg do misturador!
+          {/* Receita prevista — 1 traço, vinda da análise (somente leitura) */}
+          <div className="space-y-2">
+            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+              Receita prevista (1 traço)
+            </Label>
+            <PlannedRecipeTable items={planned} capacidadeKg={getConfigMisturador(analysis.tipo).capacidade_kg} />
+          </div>
+
+          {/* Receita real — soma de todos os traços da pista (opcional) */}
+          <div className="space-y-3">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                  Receita real utilizada <span className="normal-case font-medium tracking-normal">(opcional)</span>
+                </Label>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Informe a soma de todos os traços da pista. Os números em cinza são o previsto; deixe em branco o que não quiser informar.
                 </p>
-              )}
+              </div>
+              <div className="space-y-1 w-28 shrink-0">
+                <Label htmlFor="n-tracos" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Nº de traços
+                </Label>
+                <Input
+                  id="n-tracos"
+                  inputMode="numeric"
+                  value={nTracos}
+                  onChange={(e) => setNTracos(e.target.value.replace(/[^0-9]/g, ""))}
+                  placeholder="1"
+                  className="h-8 text-sm text-right font-bold"
+                />
+              </div>
             </div>
-          )}
+            <RealRecipeEditor
+              planned={planned}
+              nTracos={parseQtd(nTracos)}
+              values={realValues}
+              onChange={(chave, v) => setRealValues((prev) => ({ ...prev, [chave]: v }))}
+              precos={precos}
+              volumeM3={Number(volumeConcreto) > 0 ? Number(volumeConcreto) : null}
+            />
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="obs-producao">Observações (opcional)</Label>

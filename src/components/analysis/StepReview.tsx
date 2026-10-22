@@ -10,9 +10,9 @@ import {
   TIPOS_ANALISE,
   ANALISTAS,
   PENEIRAS_PADRAO,
-  getLimitesPadrao,
   type AnalysisFormData,
 } from "@/lib/analysis-data";
+import { resolveCurvaReferencia } from "@/lib/curva-referencia";
 import { useStandardCurves } from "@/hooks/api/useStandardCurves";
 import {
   LineChart,
@@ -67,24 +67,12 @@ export function StepReview({ data, onApprove, onChange, readOnly = false }: Step
   const { curves: dbCurves } = useStandardCurves();
 
   const tipoLabel = TIPOS_ANALISE.find((t) => t.value === data.tipo_analise)?.label ?? "—";
-  const dna = useMemo(() => {
-    const curve =
-      dbCurves.find((c) => c.id === data.dna_selecionado) ??
-      dbCurves.find((c) => c.tipo_produto === data.tipo_analise && c.standard_curve_items?.length) ??
-      dbCurves[0];
-    if (!curve) return undefined;
-    return {
-      id: curve.id,
-      nome: curve.nome,
-      limites: (curve.standard_curve_items ?? []).map((item) => ({
-        sieve_id: item.sieve_id,
-        limite_min: item.limite_min,
-        limite_max: item.limite_max,
-      })),
-    };
-  }, [dbCurves, data.dna_selecionado, data.tipo_analise]);
-
-  const limites = dna?.limites?.length ? dna.limites : getLimitesPadrao(data.tipo_analise);
+  // Faixa e referência: regra única (laje/pré-moldado = faixa fixa; demais = curva do banco).
+  const dna = useMemo(
+    () => resolveCurvaReferencia(data.tipo_analise, dbCurves, data.dna_selecionado),
+    [dbCurves, data.dna_selecionado, data.tipo_analise],
+  );
+  const limites = dna.limites;
 
   const curveResults = useMemo(() => {
     if (data.materiais_selecionados.length === 0) return [];
