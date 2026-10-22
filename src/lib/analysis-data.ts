@@ -8,7 +8,7 @@ import type { SieveData } from "./granulometry-engine";
 export interface Product {
   id: string;
   nome: string;
-  tipo_produto: "bloco_estrutural" | "bloco_vedacao" | "paver" | "cp" | "laje";
+  tipo_produto: "bloco_estrutural" | "bloco_vedacao" | "paver" | "cp" | "laje" | "pre_moldado";
   dimensoes: string;
   ativo: boolean;
   created_at: string;
@@ -17,7 +17,7 @@ export interface Product {
 export interface AnalysisFormData {
   id?: string;
   // Step 1 — Identification
-  tipo_analise: "bloco_estrutural" | "bloco_vedacao" | "paver" | "cp" | "laje" | "";
+  tipo_analise: "bloco_estrutural" | "bloco_vedacao" | "paver" | "cp" | "laje" | "pre_moldado" | "";
   nome: string;
   codigo: string;
   data: string;
@@ -37,6 +37,14 @@ export interface AnalysisFormData {
   volume_m3: number;
   densidade_cimento: number;
   aditivos_ml: number;
+  // Unidade em que o aditivo foi informado (aditivos_ml guarda só o número).
+  aditivo_unidade?: "mL" | "g";
+  // Aço da receita (opcional): descrição (ex.: CP-175 Ø5 mm) e quantidade.
+  // Aço cadastrado em Produtos (tipo "Aço"); a descrição acompanha o nome dele.
+  aco_material_id?: string;
+  aco_descricao?: string;
+  aco_quantidade?: number;
+  aco_unidade?: "kg" | "m";
   custo_cimento_ton: number;
   custo_aditivo_lt: number;
   limites_curva?: Array<{ sieve_id: number; limite_min: number; limite_max: number }>;
@@ -162,7 +170,7 @@ export const CURVA_REFERENCIA_LAJE: Record<number, number> = {
 // Ponto único de decisão — novas famílias de produto (tubos, postes,
 // vigotas, pilares, estacas...) só precisam de uma nova entrada aqui.
 export function getLimitesPadrao(tipo?: string): Array<{ sieve_id: number; limite_min: number; limite_max: number }> {
-  if (tipo === "laje") return LIMITES_LAJE_PADRAO;
+  if (isFamiliaLaje(tipo)) return LIMITES_LAJE_PADRAO;
   // Sem tipo de produto definido (ex.: granulometria avulsa, sem faixa de
   // referência associada) → nenhuma faixa é aplicada automaticamente.
   if (!tipo) return [];
@@ -179,7 +187,16 @@ export const TIPOS_ANALISE = [
   { value: "paver", label: "Paver" },
   { value: "cp", label: "Corpo de Prova (CP)" },
   { value: "laje", label: "Laje" },
+  { value: "pre_moldado", label: "Pré-moldado" },
 ];
+
+// "Família laje": tipos que seguem o mesmo processo (wet casting), a mesma curva
+// de referência e o mesmo misturador. Use esta função em vez de comparar com "laje".
+export const FAMILIA_LAJE = ["laje", "pre_moldado"] as const;
+
+export function isFamiliaLaje(tipo?: string): boolean {
+  return (FAMILIA_LAJE as readonly string[]).includes(tipo ?? "");
+}
 
 // Configuração centralizada da capacidade do misturador por tipo de análise
 export const CONFIG_MISTURADOR: Record<string, { capacidade_kg: number; volume_m3: number }> = {
@@ -188,6 +205,7 @@ export const CONFIG_MISTURADOR: Record<string, { capacidade_kg: number; volume_m
   paver:            { capacidade_kg: 550,  volume_m3: 0.55 },
   cp:               { capacidade_kg: 550,  volume_m3: 0.55 },
   laje:             { capacidade_kg: 2500, volume_m3: 1.00 },
+  pre_moldado:      { capacidade_kg: 2500, volume_m3: 1.00 },
 };
 
 export function getConfigMisturador(tipo: string) {
@@ -222,6 +240,7 @@ const TIPO_ANALISE_TO_DOSAGEM: Record<string, TipoDosagem> = {
   paver: "VIBROPRESSADO",
   cp: "VIBROPRESSADO",
   laje: "WET_CASTING_PROTENDIDO", // era LAJE_PROTENDIDA — processo real é Wet Casting
+  pre_moldado: "WET_CASTING_PROTENDIDO", // mesmo processo e fórmula da laje
 };
 
 export function getTipoDosagem(tipoAnalise?: string): TipoDosagem {
@@ -290,6 +309,10 @@ export function createEmptyAnalysis(): AnalysisFormData {
     volume_m3: 0.55,
     densidade_cimento: 3.15,
     aditivos_ml: 0,
+    aditivo_unidade: "mL",
+    aco_descricao: "",
+    aco_quantidade: 0,
+    aco_unidade: "kg",
     custo_cimento_ton: 0,
     custo_aditivo_lt: 0,
     limites_curva: [],

@@ -26,6 +26,7 @@ const TIPOS_PRODUTO = [
   { value: "paver", label: "Paver" },
   { value: "cp", label: "Corpo de Prova (CP)" },
   { value: "laje", label: "Laje Protendida" },
+  { value: "pre_moldado", label: "Pré-moldado" },
 ];
 
 export function ProductTypeModal({ open, onOpenChange, editId }: Props) {
@@ -151,7 +152,7 @@ export function ProductTypeModal({ open, onOpenChange, editId }: Props) {
             />
           </div>
 
-          {form.tipo_produto === "laje" && (
+          {(form.tipo_produto === "laje" || form.tipo_produto === "pre_moldado") && (
             <div className="space-y-2 col-span-2">
               <Label>Dimensão Máxima do Agregado Permitida (mm)</Label>
               <Input

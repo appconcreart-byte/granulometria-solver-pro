@@ -28,6 +28,7 @@ const TIPOS_MATERIAL = [
   { label: "Granilha", value: "granilha" },
   { label: "Cimento", value: "cimento" },
   { label: "Aditivo", value: "aditivo" },
+  { label: "Aço", value: "aco" },
   { label: "Outro", value: "outro" },
 ];
 
@@ -176,6 +177,7 @@ export function MaterialModal({ open, onOpenChange, editId }: MaterialModalProps
                   <SelectItem value="m3">R$ / m³</SelectItem>
                   <SelectItem value="saco">R$ / saco</SelectItem>
                   <SelectItem value="unidade">R$ / un.</SelectItem>
+                  <SelectItem value="metro">R$ / m</SelectItem>
                 </SelectContent>
               </Select>
             </div>

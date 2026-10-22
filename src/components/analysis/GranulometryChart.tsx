@@ -30,6 +30,8 @@ interface GranulometryChartProps {
   // Modelo granulométrico usado — muda o rótulo exibido para deixar claro
   // que Laje Protendida usa um modelo próprio, não a curva de vibroprensados.
   tipoDosagem?: TipoDosagem;
+  // Altura do gráfico em px. Padrão: 180 (compact) ou 320.
+  height?: number;
 }
 
 const TITULO_POR_TIPO: Record<TipoDosagem, string> = {
@@ -65,7 +67,7 @@ const AVISO_POR_TIPO: Record<TipoDosagem, string> = {
     "Curva de referência baseada no único traço real de fábrica em produção e funcionando (Concreart), com faixa de estudo de ±5 pontos percentuais. Não é uma faixa normativa da ABNT nem estatisticamente validada — é uma referência inicial baseada num traço real aprovado.",
 };
 
-export function GranulometryChart({ curveResults, hasLimits, compact = false, tipoDosagem = "VIBROPRESSADO" }: GranulometryChartProps) {
+export function GranulometryChart({ curveResults, hasLimits, compact = false, tipoDosagem = "VIBROPRESSADO", height }: GranulometryChartProps) {
   const chartData = useMemo(() => {
     return curveResults.map((r) => {
       const limiteMin = r.limite_min != null ? Math.round(r.limite_min * 10000) / 100 : undefined;
@@ -83,6 +85,9 @@ export function GranulometryChart({ curveResults, hasLimits, compact = false, ti
         acumulado: Math.round(r.pct_acumulado * 10000) / 100,
         limiteMin,
         limiteMax,
+        // Faixa como intervalo único [mín, máx]: 0% é um limite válido (peneiras
+        // grossas), por isso a checagem é por null e não por "valor verdadeiro".
+        faixa: limiteMin != null && limiteMax != null ? [limiteMin, limiteMax] : undefined,
         dnAlvo,
         fora: r.fora_da_faixa,
       };
@@ -96,7 +101,7 @@ export function GranulometryChart({ curveResults, hasLimits, compact = false, ti
       <div className="rounded-lg border bg-card p-3 shadow-lg text-xs space-y-1.5">
         <p className="font-semibold text-foreground text-sm">{label}</p>
         {payload.map((entry: any) => {
-          if (entry.dataKey === "limiteMin" || entry.dataKey === "limiteMax") return null;
+          if (entry.dataKey === "limiteMin" || entry.dataKey === "limiteMax" || entry.dataKey === "faixa") return null;
 
           const nameMap: Record<string, string> = {
             acumulado: "Curva de Estudo",
@@ -132,17 +137,18 @@ export function GranulometryChart({ curveResults, hasLimits, compact = false, ti
     );
   };
 
-  const chartHeight = compact ? 180 : 320;
+  const chartHeight = height ?? (compact ? 180 : 320);
 
   const chartContent = (
     <>
       <ResponsiveContainer width="100%" height={chartHeight}>
-        <ComposedChart data={chartData} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+        <ComposedChart data={chartData} margin={{ top: 8, right: 28, bottom: 5, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
           <XAxis
             dataKey="label"
             fontSize={10}
             tick={{ fill: "hsl(var(--muted-foreground))" }}
+            interval={0}
             reversed
           />
           <YAxis
@@ -158,18 +164,11 @@ export function GranulometryChart({ curveResults, hasLimits, compact = false, ti
             <>
               <Area
                 type="monotone"
-                dataKey="limiteMax"
+                dataKey="faixa"
                 stroke="none"
                 fill="rgb(186, 230, 253)" // Sky-200
                 fillOpacity={0.4}
-                isAnimationActive={false}
-              />
-              <Area
-                type="monotone"
-                dataKey="limiteMin"
-                stroke="none"
-                fill="hsl(var(--card))"
-                fillOpacity={1}
+                connectNulls
                 isAnimationActive={false}
               />
               <Line
@@ -180,6 +179,7 @@ export function GranulometryChart({ curveResults, hasLimits, compact = false, ti
                 strokeDasharray="4 4"
                 dot={false}
                 activeDot={false}
+                connectNulls
                 isAnimationActive={false}
                 name="Limite Superior"
               />
@@ -191,6 +191,7 @@ export function GranulometryChart({ curveResults, hasLimits, compact = false, ti
                 strokeDasharray="4 4"
                 dot={false}
                 activeDot={false}
+                connectNulls
                 isAnimationActive={false}
                 name="Limite Inferior"
               />
@@ -205,6 +206,7 @@ export function GranulometryChart({ curveResults, hasLimits, compact = false, ti
               stroke="hsl(35 92% 50%)"
               strokeWidth={2}
               strokeDasharray="8 4"
+              connectNulls
               dot={false}
               activeDot={{ r: 4, strokeWidth: 2, fill: "hsl(35 92% 50%)" }}
               name="DNA Alvo"

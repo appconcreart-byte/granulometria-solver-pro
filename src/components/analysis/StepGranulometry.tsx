@@ -46,10 +46,11 @@ import {
   getLimitesPadrao,
   getConfigMisturador,
   getTipoDosagem,
-  CURVA_REFERENCIA_LAJE,
+  isFamiliaLaje,
   type AnalysisFormData,
   type AnalysisMaterial,
 } from "@/lib/analysis-data";
+import { toCurvaParaGrafico } from "@/lib/curva-referencia";
 import { useMaterials } from "@/hooks/api/useMaterials";
 import { useStandardCurves } from "@/hooks/api/useStandardCurves";
 import { Database, Dna, AlertTriangle, CheckCircle2, AlertCircle, Trash2, Plus, Save, FolderOpen } from "lucide-react";
@@ -107,7 +108,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
   }, [dbCurves]);
 
   const materiaisDisponiveis = useMemo<AnalysisMaterial[]>(() => {
-    return dbMaterials.filter(m => m.ativo).map(mat => ({
+    return dbMaterials.filter(m => m.ativo && m.tipo !== 'aco').map(mat => ({
       material_id: mat.id,
       nome: mat.nome,
       proporcao_kg: 0,
@@ -156,7 +157,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
   const dna =
     dnasDisponiveis.find((d) => d.id === data.dna_selecionado) ??
     dnasDisponiveis.find((d) => d.tipo === data.tipo_analise && d.limites.length) ??
-    (data.tipo_analise === "laje" || !data.tipo_analise ? undefined : dnasDisponiveis[0]);
+    (isFamiliaLaje(data.tipo_analise) || !data.tipo_analise ? undefined : dnasDisponiveis[0]);
   // Cascata: DB → form → normativo hardcoded por tipo (garante que limites nunca ficam vazios).
   //
   // Exclusivo para LAJE: a faixa é sempre a mesma referência fixa
@@ -167,7 +168,7 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
   // cada traço testado, quando o pedido é uma única referência fixa para
   // todos os traços de laje. Para bloco/paver/cp a cascata original (DB →
   // preset salvo na análise → fallback normativo) continua idêntica.
-  const limits = data.tipo_analise === "laje"
+  const limits = isFamiliaLaje(data.tipo_analise)
     ? getLimitesPadrao("laje")
     : dna?.limites?.length
       ? dna.limites
@@ -213,19 +214,10 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
   // (a faixa de estudo ali é "clampada" em 0%/100%, perdendo a simetria).
   // GranulometryChart usa esse campo no lugar da média quando presente;
   // bloco/paver nunca o enviam, então continuam com o cálculo de sempre.
-  const curveResultsParaGrafico = useMemo(() => {
-    if (tipoDosagem !== "WET_CASTING_PROTENDIDO") return curveResults;
-    return curveResults.map((r) => {
-      const refRetido = CURVA_REFERENCIA_LAJE[r.sieve_id];
-      return {
-        ...r,
-        pct_acumulado: 1 - r.pct_acumulado,
-        limite_min: r.limite_max != null ? 1 - r.limite_max : undefined,
-        limite_max: r.limite_min != null ? 1 - r.limite_min : undefined,
-        referencia: refRetido != null ? 1 - refRetido : undefined,
-      };
-    });
-  }, [curveResults, tipoDosagem]);
+  const curveResultsParaGrafico = useMemo(
+    () => toCurvaParaGrafico(curveResults, tipoDosagem),
+    [curveResults, tipoDosagem],
+  );
 
   // MF por material
   const mfPerMaterial = useMemo(
@@ -529,7 +521,9 @@ export function StepGranulometry({ data, onChange, readOnly }: StepGranulometryP
             <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2">
               <CardTitle className="text-sm font-black uppercase tracking-wider">
                 TABELA GRANULOMÉTRICA –{" "}
-                {data.tipo_analise === "laje"
+                {data.tipo_analise === "pre_moldado"
+                  ? "PRÉ-MOLDADOS"
+                  : data.tipo_analise === "laje"
                   ? "LAJES"
                   : data.tipo_analise === "paver" || data.tipo_analise === "cp"
                   ? "PAVERS"

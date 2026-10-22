@@ -1,4 +1,4 @@
-export type ProductGroup = "BLOCOS" | "PAVERS" | "LAJES";
+export type ProductGroup = "BLOCOS" | "PAVERS" | "LAJES" | "PRE_MOLDADOS";
 
 /**
  * Grupos de produto habilitados nesta planta.
@@ -8,6 +8,7 @@ export const ENABLED_PRODUCT_GROUPS: ProductGroup[] = [
   // "BLOCOS",
   // "PAVERS",
   "LAJES",
+  "PRE_MOLDADOS",
 ];
 
 export const isGroupEnabled = (group: ProductGroup) =>
