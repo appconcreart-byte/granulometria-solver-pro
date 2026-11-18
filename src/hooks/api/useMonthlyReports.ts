@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { MOLDAGEM_SELECT_COLUMNS } from "@/lib/moldagem";
 
 // A listagem geral de useRuptures() não traz os testes/amostras junto
 // (só o detalhe de um schedule individual traz) — o relatório mensal
@@ -23,6 +24,7 @@ export function useRuptureSchedulesWithTests() {
             produced_at,
             status,
             notas,
+            ${MOLDAGEM_SELECT_COLUMNS},
             analyses (nome, codigo, produto, tipo)
           ),
           tests:rupture_tests (
