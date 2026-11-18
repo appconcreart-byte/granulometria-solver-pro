@@ -165,6 +165,15 @@ export function indicadoresLote(total: number, volumeM3: number | null | undefin
   };
 }
 
+/** Custo do aço previsto na análise (é por pista, não por traço); null sem preço utilizável. */
+export function custoAcoPrevisto(formData: any, dbMaterials: any[]): number | null {
+  return custoItem(
+    { tipo: "aco", unidade: formData?.aco_unidade === "m" ? "m" : "kg" },
+    formData?.aco_quantidade || 0,
+    precoDe((dbMaterials ?? []).find((m) => m.id === formData?.aco_material_id)),
+  );
+}
+
 /**
  * Estimativa para lotes SEM receita real: custo de 1 traço (preços atuais) × nº de
  * traços (1 se não informado), mais o aço previsto (que é por pista). Sempre
@@ -177,10 +186,6 @@ export function custoEstimadoLote(
 ): { total: number; baseTracos: number; informado: boolean } {
   const n = maiorQueZero(nTracos) ? nTracos : 1;
   const traco = calcularCustoTracoCompleto({ formData, dbMaterials: dbMaterials || [] });
-  const aco = custoItem(
-    { tipo: "aco", unidade: formData?.aco_unidade === "m" ? "m" : "kg" },
-    formData?.aco_quantidade || 0,
-    precoDe((dbMaterials ?? []).find((m) => m.id === formData?.aco_material_id)),
-  );
+  const aco = custoAcoPrevisto(formData, dbMaterials);
   return { total: traco.totalBatelada * n + (aco ?? 0), baseTracos: n, informado: maiorQueZero(nTracos) };
 }

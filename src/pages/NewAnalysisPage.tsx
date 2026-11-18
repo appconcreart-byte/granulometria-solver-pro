@@ -8,7 +8,7 @@ import { StepGranulometry } from "@/components/analysis/StepGranulometry";
 import { StepDosage } from "@/components/analysis/StepDosage";
 import { StepReview } from "@/components/analysis/StepReview";
 import { StepResult } from "@/components/analysis/StepResult";
-import { createEmptyAnalysis, PENEIRAS_PADRAO, getConfigMisturador, type AnalysisFormData } from "@/lib/analysis-data";
+import { createEmptyAnalysis, PENEIRAS_PADRAO, getConfigMisturador, UNIDADE_PADRAO, type AnalysisFormData } from "@/lib/analysis-data";
 import {
   ArrowLeft,
   ArrowRight,
@@ -146,7 +146,7 @@ const NewAnalysisPage = () => {
         tipo_analise: (analysisData.tipo as any) || "",
         produto_nome: analysisData.produto || "",
         resistencia_prevista: analysisData.resistencia_prevista || 0,
-        unidade: analysisData.unidade || "",
+        unidade: analysisData.unidade || UNIDADE_PADRAO,
         observacoes: analysisData.observacoes || "",
         data: analysisData.data_analise || new Date().toISOString().split("T")[0],
         relacao_cimento: dosage?.relacao_cimento || 18,

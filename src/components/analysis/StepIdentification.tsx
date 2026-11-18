@@ -9,11 +9,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useProducts } from "@/hooks/api/useProducts";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Layers, Square, LayoutPanelTop, Boxes } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AnalysisFormData } from "@/lib/analysis-data";
-import { getConfigMisturador } from "@/lib/analysis-data";
+import { getConfigMisturador, UNIDADE_PADRAO } from "@/lib/analysis-data";
 import { ENABLED_PRODUCT_GROUPS, isGroupEnabled } from "@/lib/product-groups";
 
 interface StepIdentificationProps {
@@ -73,6 +73,13 @@ const PRE_MOLDADOS_TIPOS = TIPO_OPTIONS.filter((t) => t.group === "PRE_MOLDADOS"
 
 export function StepIdentification({ data, onChange }: StepIdentificationProps) {
   const { products } = useProducts();
+
+  // Rascunhos salvos antes do padrão existir podem ter a unidade vazia: preenche só ao abrir a etapa,
+  // para o usuário ainda poder apagar e digitar outra unidade.
+  useEffect(() => {
+    if (!data.unidade) onChange({ unidade: UNIDADE_PADRAO });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filteredProducts = useMemo(() => {
     if (!data.tipo_analise || !products) return [];

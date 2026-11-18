@@ -14,6 +14,7 @@ import {
 } from "@/lib/analysis-data";
 import { resolveCurvaReferencia } from "@/lib/curva-referencia";
 import { useStandardCurves } from "@/hooks/api/useStandardCurves";
+import { useMaterials } from "@/hooks/api/useMaterials";
 import {
   LineChart,
   Line,
@@ -65,6 +66,14 @@ function ProportionBar({ label, kg, totalKg }: { label: string; kg: number; tota
 export function StepReview({ data, onApprove, onChange, readOnly = false }: StepReviewProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { curves: dbCurves } = useStandardCurves();
+  const { materials: dbMaterials } = useMaterials();
+
+  // Aditivo e aço (opcionais): só aparecem quando há quantidade informada na dosagem
+  const temAditivo = (data.aditivos_ml ?? 0) > 0;
+  const aditivoMarca = data.aditivo_marca_id ? dbMaterials.find((m) => m.id === data.aditivo_marca_id)?.nome : undefined;
+  const aditivoQuantidade = `${(data.aditivos_ml ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} ${data.aditivo_unidade ?? "mL"}`;
+  const temAco = (data.aco_quantidade ?? 0) > 0;
+  const acoQuantidade = `${(data.aco_quantidade ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} ${data.aco_unidade ?? "kg"}`;
 
   const tipoLabel = TIPOS_ANALISE.find((t) => t.value === data.tipo_analise)?.label ?? "—";
   // Faixa e referência: regra única (laje/pré-moldado = faixa fixa; demais = curva do banco).
@@ -255,6 +264,29 @@ export function StepReview({ data, onApprove, onChange, readOnly = false }: Step
                 <span className="font-bold">{dosageResult ? (dosageResult.massa_total_batelada / (dosageResult.densidade_efetiva * 1000)).toFixed(3) : "—"} m³</span>
               </div>
             </div>
+
+            {(temAditivo || temAco) && (
+              <div className="space-y-1.5 text-xs pt-2 border-t">
+                {temAditivo && (
+                  <div className="flex justify-between gap-3">
+                    <div className="min-w-0">
+                      <span className="text-muted-foreground">Aditivo (Bat.)</span>
+                      {aditivoMarca && <p className="text-[10px] text-muted-foreground/80 truncate">{aditivoMarca}</p>}
+                    </div>
+                    <span className="font-bold whitespace-nowrap">{aditivoQuantidade}</span>
+                  </div>
+                )}
+                {temAco && (
+                  <div className="flex justify-between gap-3">
+                    <div className="min-w-0">
+                      <span className="text-muted-foreground">Aço (por pista)</span>
+                      {data.aco_descricao && <p className="text-[10px] text-muted-foreground/80 truncate">{data.aco_descricao}</p>}
+                    </div>
+                    <span className="font-bold whitespace-nowrap">{acoQuantidade}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -19,6 +19,8 @@ type Workbook = ExcelJSNamespace.Workbook;
 
 interface ExcelOptions {
   limitesDna?: Array<{ sieve_id: number; limite_min: number; limite_max: number }>;
+  /** Marca do aditivo escolhida na dosagem (o nome vem do cadastro de materiais) */
+  aditivoMarca?: string;
 }
 
 async function downloadWorkbook(workbook: Workbook, filename: string): Promise<void> {
@@ -116,6 +118,15 @@ export async function generateAnalysisExcel(data: AnalysisFormData, options?: Ex
       dosageSheet.addRow([m.nome, m.kg]);
     });
     dosageSheet.addRow(["Água (L)", dosageResult.agua_batelada]);
+    // Aditivo e aço (opcionais): a unidade vai no nome da linha para a quantidade ficar numérica
+    if (data.aditivos_ml > 0) {
+      const marca = options?.aditivoMarca ? ` — ${options.aditivoMarca}` : "";
+      dosageSheet.addRow([`Aditivo${marca} (${data.aditivo_unidade ?? "mL"})`, data.aditivos_ml]);
+    }
+    if ((data.aco_quantidade ?? 0) > 0) {
+      const descricao = data.aco_descricao ? ` — ${data.aco_descricao}` : "";
+      dosageSheet.addRow([`Aço${descricao} (${data.aco_unidade ?? "kg"}, por pista)`, data.aco_quantidade]);
+    }
     dosageSheet.addRow(["Massa Total (kg)", dosageResult.massa_total_batelada]);
     dosageSheet.addRow(["Traço Final", dosageResult.traco_final]);
   } else {

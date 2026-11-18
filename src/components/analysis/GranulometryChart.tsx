@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AreaChart,
@@ -67,7 +67,12 @@ const AVISO_POR_TIPO: Record<TipoDosagem, string> = {
     "Curva de referência baseada no único traço real de fábrica em produção e funcionando (Concreart), com faixa de estudo de ±5 pontos percentuais. Não é uma faixa normativa da ABNT nem estatisticamente validada — é uma referência inicial baseada num traço real aprovado.",
 };
 
+// Abaixo dessa largura (px) as etiquetas do eixo X (ex.: "0,15 mm") não cabem na horizontal e se sobrepõem
+const LARGURA_MIN_ROTULOS_HORIZONTAIS = 560;
+
 export function GranulometryChart({ curveResults, hasLimits, compact = false, tipoDosagem = "VIBROPRESSADO", height }: GranulometryChartProps) {
+  const [estreito, setEstreito] = useState(false);
+
   const chartData = useMemo(() => {
     return curveResults.map((r) => {
       const limiteMin = r.limite_min != null ? Math.round(r.limite_min * 10000) / 100 : undefined;
@@ -137,11 +142,16 @@ export function GranulometryChart({ curveResults, hasLimits, compact = false, ti
     );
   };
 
-  const chartHeight = height ?? (compact ? 180 : 320);
+  // Etiquetas inclinadas ocupam mais altura: soma o espaço extra para não encolher a área do gráfico
+  const chartHeight = (height ?? (compact ? 180 : 320)) + (estreito ? 30 : 0);
 
   const chartContent = (
     <>
-      <ResponsiveContainer width="100%" height={chartHeight}>
+      <ResponsiveContainer
+        width="100%"
+        height={chartHeight}
+        onResize={(width) => setEstreito(width < LARGURA_MIN_ROTULOS_HORIZONTAIS)}
+      >
         <ComposedChart data={chartData} margin={{ top: 8, right: 28, bottom: 5, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
           <XAxis
@@ -150,6 +160,7 @@ export function GranulometryChart({ curveResults, hasLimits, compact = false, ti
             tick={{ fill: "hsl(var(--muted-foreground))" }}
             interval={0}
             reversed
+            {...(estreito ? { angle: -45, textAnchor: "end" as const, height: 50, tickMargin: 4 } : {})}
           />
           <YAxis
             domain={[0, 100]}
