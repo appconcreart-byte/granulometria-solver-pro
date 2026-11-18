@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
+import { NOTIFICATIONS_REFRESH_EVENT } from "@/hooks/useRuptureNotificationsSync";
 import type { Notification as DBNotification } from "@/types/database.types";
 
 interface Notification {
@@ -82,6 +83,9 @@ export function NotificationsDropdown() {
 
     fetchNotifications();
 
+    // O sync de rompimentos roda em paralelo à primeira carga: recarrega quando ele criar avisos novos
+    window.addEventListener(NOTIFICATIONS_REFRESH_EVENT, fetchNotifications);
+
     const channel = supabase
       .channel("notifications-realtime")
       .on(
@@ -127,6 +131,7 @@ export function NotificationsDropdown() {
       .subscribe();
 
     return () => {
+      window.removeEventListener(NOTIFICATIONS_REFRESH_EVENT, fetchNotifications);
       supabase.removeChannel(channel);
     };
   }, [profile?.id]);
