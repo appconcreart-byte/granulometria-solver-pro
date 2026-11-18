@@ -30,17 +30,11 @@ export function MoldagemCard({ batch, readOnly, isSaving = false, onSave }: Mold
   const [error, setError] = useState<string | null>(null);
 
   // Quando o lote é recarregado (ex.: depois de salvar), mostra o que está salvo.
+  const { produced_at, data_moldagem, hora_moldagem, temperatura_c, tempo_clima, slump_cm } = batch;
   useEffect(() => {
-    setForm(moldagemFormFromBatch(batch));
+    setForm(moldagemFormFromBatch({ produced_at, data_moldagem, hora_moldagem, temperatura_c, tempo_clima, slump_cm }));
     setError(null);
-  }, [
-    batch.produced_at,
-    batch.data_moldagem,
-    batch.hora_moldagem,
-    batch.temperatura_c,
-    batch.tempo_clima,
-    batch.slump_cm,
-  ]);
+  }, [produced_at, data_moldagem, hora_moldagem, temperatura_c, tempo_clima, slump_cm]);
 
   const update = <K extends keyof MoldagemForm>(campo: K, valor: MoldagemForm[K]) => {
     setForm((atual) => ({ ...atual, [campo]: valor }));
