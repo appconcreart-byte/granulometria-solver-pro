@@ -36,6 +36,7 @@ import {
 } from "@/lib/granulometry-engine";
 import { cn } from "@/lib/utils";
 import { GranulometryChart } from "@/components/analysis/GranulometryChart";
+import { MoldagemLaudoBlock } from "@/components/quality/MoldagemLaudoBlock";
 import { useStandardCurves } from "@/hooks/api/useStandardCurves";
 import {
   LineChart,
@@ -451,6 +452,8 @@ const QualityReportPage = () => {
                   </div>
                 )}
               </div>
+
+              <MoldagemLaudoBlock batch={batch} exporting={exporting} />
 
               <div className={cn("grid gap-6 md:gap-10", exporting && !cliente ? "grid-cols-2" : exporting ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2")} data-pdf-avoid-break>
                 {/* Granulometria */}
