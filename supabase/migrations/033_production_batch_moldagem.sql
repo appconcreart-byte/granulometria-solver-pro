@@ -23,4 +23,4 @@ ALTER TABLE production_batches
 ALTER TABLE production_batches
   ADD CONSTRAINT production_batches_tempo_clima_check CHECK (tempo_clima IS NULL OR tempo_clima IN ('sol','chuva')),
   ADD CONSTRAINT production_batches_temperatura_c_check CHECK (temperatura_c IS NULL OR temperatura_c BETWEEN -10 AND 60),
-  ADD CONSTRAINT production_batches_slump_cm_check CHECK (slump_cm IS NULL OR slump_cm >= 0);
+  ADD CONSTRAINT production_batches_slump_cm_check CHECK (slump_cm IS NULL OR slump_cm BETWEEN 0 AND 99.9);

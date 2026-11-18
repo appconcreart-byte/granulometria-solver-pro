@@ -9,9 +9,6 @@ export const TEMPO_CLIMA_LABEL: Record<TempoClima, string> = {
   chuva: "Chuva",
 };
 
-/** Lista de colunas para usar dentro de um select() do production_batches. */
-export const MOLDAGEM_SELECT_COLUMNS = "data_moldagem, hora_moldagem, temperatura_c, tempo_clima, slump_cm";
-
 export interface MoldagemColumns {
   data_moldagem: string | null; // "YYYY-MM-DD"
   hora_moldagem: string | null; // "HH:mm" (o banco devolve "HH:mm:ss")
@@ -32,7 +29,9 @@ export interface MoldagemForm {
 const TEMPERATURA_MIN = -10;
 const TEMPERATURA_MAX = 60;
 const ERRO_TEMPERATURA = "Temperatura deve estar entre -10 e 60 °C";
+const SLUMP_MAX = 99.9; // a coluna slump_cm é NUMERIC(4,1); valores maiores não são slump real (ex.: mm digitado como cm)
 const ERRO_SLUMP = "Slump deve ser um número maior ou igual a 0";
+const ERRO_SLUMP_MAX = "Slump deve ser no máximo 99,9 cm";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const hhmm = (hora: string | null | undefined) => (hora ? hora.slice(0, 5) : "");
@@ -86,6 +85,9 @@ export function moldagemColumnsFromForm(
   const slump = parseDecimal(form.slump);
   if (slump !== null && (Number.isNaN(slump) || slump < 0)) {
     return { ok: false, error: ERRO_SLUMP };
+  }
+  if (slump !== null && slump > SLUMP_MAX) {
+    return { ok: false, error: ERRO_SLUMP_MAX };
   }
 
   return {

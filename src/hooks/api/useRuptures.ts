@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "../useAuth";
-import { MOLDAGEM_SELECT_COLUMNS } from "@/lib/moldagem";
 export type ScheduleStatus = "pendente" | "em_andamento" | "concluido" | "atrasado" | "ignorado" | "sem_expediente";
 
 export interface DBRuptureSchedule {
@@ -428,11 +427,7 @@ export function useScheduleDetail(scheduleId?: string) {
         .select(`
           *,
           batch:production_batches (
-            id,
-            batch_code,
-            produced_at,
-            status,
-            ${MOLDAGEM_SELECT_COLUMNS},
+            *,
             analyses (id, nome, codigo, produto, tipo, resistencia_prevista)
           )
         `)

@@ -49,7 +49,7 @@ O usuário escolheu a **A**.
 ## Design (decidido na conversa)
 - Colunas nullable em `production_batches`: `data_moldagem DATE`, `hora_moldagem TIME`,
   `temperatura_c NUMERIC(4,1)`, `tempo_clima TEXT` (`sol` | `chuva`), `slump_cm NUMERIC(4,1)`.
-- Tela: `useScheduleDetail` passa a trazer as colunas do lote. Nova mutation de
+- Tela: `useScheduleDetail` (e a busca do relatório mensal) leem o lote com `*`, assim a tela abre mesmo se o app rodar antes de a migration 033 ser aplicada. Nova mutation de
   atualização do lote (mesmo padrão de `updateBatchRecipeMutation` em `useProduction.ts`).
   Ao salvar, invalidar `rupture_schedule_detail`, `production_batches` e `batch_report`.
 - Laudo: nova linha "Moldagem" em "Dados Gerais", nas duas versões. Campo vazio aparece
@@ -64,7 +64,7 @@ O usuário escolheu a **A**.
   editáveis. Só viram dado salvo quando o usuário clica em Salvar Moldagem. Não alteram
   `produced_at`.
 - Tempo: duas opções, Sol e Chuva, como no rótulo do print.
-- Validação no banco: temperatura entre -10 e 60 °C; slump maior ou igual a 0.
+- Validação no banco: temperatura entre -10 e 60 °C; slump entre 0 e 99,9 cm (99,9 é o limite da coluna `NUMERIC(4,1)`; acrescentado na revisão final).
 - A edição do cartão segue o `isReadOnly` da página.
 
 ## Fica para quem constrói

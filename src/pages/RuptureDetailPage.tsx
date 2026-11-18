@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -111,9 +111,13 @@ const RuptureDetailPage = () => {
     laje: AREAS_PADRAO.custom,
   });
 
-  // Pre-load data if available
+  // Pre-load data if available. Só uma vez por rompimento: quando o lote é recarregado
+  // (ex.: depois de salvar a moldagem) os dados chegam como objeto novo e não podem
+  // sobrescrever o que o ADMIN já editou e ainda não salvou.
+  const hydratedScheduleRef = useRef<string | null>(null);
   useEffect(() => {
-    if (found?.schedule?.status === "concluido") {
+    if (found?.schedule?.status === "concluido" && hydratedScheduleRef.current !== scheduleId) {
+      hydratedScheduleRef.current = scheduleId ?? null;
       const s = found.schedule as any;
       if (s.data_executada) setDataReal(s.data_executada);
       if (s.responsavel_id) setResponsavel(s.responsavel_id);

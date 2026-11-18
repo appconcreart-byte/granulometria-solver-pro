@@ -68,6 +68,18 @@ describe("moldagem", () => {
       });
     });
 
+    it.each(["100", "99,95", "1000"])("rejeita slump %s (a coluna só comporta até 99,9)", (slump) => {
+      expect(moldagemColumnsFromForm({ data: "", hora: "", temperatura: "", tempo: "", slump })).toEqual({
+        ok: false,
+        error: "Slump deve ser no máximo 99,9 cm",
+      });
+    });
+
+    it("aceita slump 99,9 (limite)", () => {
+      const r = moldagemColumnsFromForm({ data: "", hora: "", temperatura: "", tempo: "", slump: "99,9" });
+      expect(r).toMatchObject({ ok: true, value: { slump_cm: 99.9 } });
+    });
+
     it("aceita slump 0", () => {
       const r = moldagemColumnsFromForm({ data: "", hora: "", temperatura: "", tempo: "", slump: "0" });
       expect(r).toMatchObject({ ok: true, value: { slump_cm: 0 } });
