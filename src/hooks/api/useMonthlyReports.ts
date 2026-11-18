@@ -18,11 +18,7 @@ export function useRuptureSchedulesWithTests() {
         .select(`
           *,
           batch:production_batches (
-            id,
-            batch_code,
-            produced_at,
-            status,
-            notas,
+            *,
             analyses (nome, codigo, produto, tipo)
           ),
           tests:rupture_tests (

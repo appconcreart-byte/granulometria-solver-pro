@@ -427,10 +427,7 @@ export function useScheduleDetail(scheduleId?: string) {
         .select(`
           *,
           batch:production_batches (
-            id,
-            batch_code,
-            produced_at,
-            status,
+            *,
             analyses (id, nome, codigo, produto, tipo, resistencia_prevista)
           )
         `)

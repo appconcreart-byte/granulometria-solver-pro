@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
-import { getDefaultDateFilter, isInDateRange, formatPeriodLabel } from "@/lib/dateFilter";
+import { ALL_HISTORY_DATE_FILTER, isInDateRange, formatPeriodLabel } from "@/lib/dateFilter";
 import type { DateFilter } from "@/lib/dateFilter";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -43,7 +43,8 @@ const RupturesPage = () => {
 
   const [search, setSearch] = usePersistedState("ruptures:search", "");
   const [filterStatus, setFilterStatus] = usePersistedState<string>("ruptures:filterStatus", "all");
-  const [dateFilter, setDateFilter] = usePersistedState<DateFilter>("ruptures:dateFilter", getDefaultDateFilter());
+  // Abre listando todos os rompimentos (sem filtro de mês); o filtro escolhido continua valendo até fechar a aba
+  const [dateFilter, setDateFilter] = usePersistedState<DateFilter>("ruptures:dateFilter", ALL_HISTORY_DATE_FILTER);
   
   // States of early release modal
   const [releaseModalOpen, setReleaseModalOpen] = useState(false);

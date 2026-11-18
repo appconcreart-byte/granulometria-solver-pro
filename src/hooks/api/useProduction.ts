@@ -4,8 +4,9 @@ import { useAuth } from "../useAuth";
 import type { BatchStatus } from "@/types/database.types";
 import type { ScheduleStatus } from "@/hooks/api/useRuptures";
 import type { ReceitaReal } from "@/lib/production-recipe";
+import type { MoldagemColumns } from "@/lib/moldagem";
 
-export interface DBProductionBatch {
+export interface DBProductionBatch extends MoldagemColumns {
   id: string;
   organization_id: string;
   analysis_id: string;

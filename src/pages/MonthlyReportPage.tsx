@@ -29,6 +29,7 @@ import { useMonthlyReport, useRuptureSchedulesWithTests } from "@/hooks/api/useM
 import { generateElementPDF } from "@/lib/pdf-generator";
 import { generateMonthlyReportExcel } from "@/lib/excel-generator";
 import { TIPOS_ANALISE } from "@/lib/analysis-data";
+import { formatMoldagemResumo } from "@/lib/moldagem";
 
 const MONTHS = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -66,7 +67,7 @@ interface PeriodSummary {
   marcasAditivo: { marca: string; quantidade: number }[];
 }
 
-function buildSummary(
+export function buildSummary(
   ano: number,
   mes: number,
   analyses: ReturnType<typeof useAnalyses>["analyses"],
@@ -143,8 +144,9 @@ function buildSummary(
   batches
     .filter((b: any) => inPeriod(b.produced_at, ano, mes) && ["reprovado", "aprovado_com_ressalva"].includes(b.status))
     .forEach((b: any) => {
+      const moldagem = formatMoldagemResumo(b);
       naoConformidades.push({
-        descricao: `Lote ${b.batch_code} — ${b.status === "reprovado" ? "reprovado" : "aprovado com ressalva"}${b.notas ? `: ${b.notas}` : ""}`,
+        descricao: `Lote ${b.batch_code} — ${b.status === "reprovado" ? "reprovado" : "aprovado com ressalva"}${b.notas ? `: ${b.notas}` : ""}${moldagem ? ` (moldagem: ${moldagem})` : ""}`,
         data: b.produced_at?.slice(0, 10) ?? "—",
       });
     });

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRuptures, useScheduleDetail } from "@/hooks/api/useRuptures";
 import { useProfiles } from "@/hooks/api/useProfiles";
 import { useTechnicalSettings } from "@/hooks/api/useTechnicalSettings";
+import { useSaveBatchMoldagem } from "@/hooks/api/useBatchMoldagem";
+import { MoldagemCard } from "@/components/rupture/MoldagemCard";
+import type { MoldagemColumns } from "@/lib/moldagem";
 import { TIPOS_ANALISE } from "@/lib/analysis-data";
 import { calcTensao, calcRuptureStats, AREAS_PADRAO, calcTensaoPaver, calcRuptureStatsPaver, calcTensaoLaje, calcRuptureStatsLaje, getMetaForAge } from "@/lib/granulometry-engine";
 
@@ -52,6 +55,7 @@ const RuptureDetailPage = () => {
   const { profiles } = useProfiles();
   const { completeRupture, isCompleting, finalizeWithCurrentTest, isFinalizing, updateRupture, isUpdating, markSemExpediente, isMarkingSemExpediente } = useRuptures();
   const { data: scheduleData, isLoading } = useScheduleDetail(scheduleId);
+  const { saveMoldagem, isSaving: isSavingMoldagem } = useSaveBatchMoldagem();
 
   const found = useMemo(() => {
     if (!scheduleData) return null;
@@ -107,9 +111,13 @@ const RuptureDetailPage = () => {
     laje: AREAS_PADRAO.custom,
   });
 
-  // Pre-load data if available
+  // Pre-load data if available. Só uma vez por rompimento: quando o lote é recarregado
+  // (ex.: depois de salvar a moldagem) os dados chegam como objeto novo e não podem
+  // sobrescrever o que o ADMIN já editou e ainda não salvou.
+  const hydratedScheduleRef = useRef<string | null>(null);
   useEffect(() => {
-    if (found?.schedule?.status === "concluido") {
+    if (found?.schedule?.status === "concluido" && hydratedScheduleRef.current !== scheduleId) {
+      hydratedScheduleRef.current = scheduleId ?? null;
       const s = found.schedule as any;
       if (s.data_executada) setDataReal(s.data_executada);
       if (s.responsavel_id) setResponsavel(s.responsavel_id);
@@ -387,6 +395,17 @@ const RuptureDetailPage = () => {
     }
   };
 
+  // Moldagem é dado do lote: grava só production_batches, sem mexer neste rompimento.
+  const handleSaveMoldagem = async (value: MoldagemColumns) => {
+    try {
+      await saveMoldagem({ batchId: (batch as any).id, value });
+      toast.success("Moldagem salva");
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao salvar moldagem");
+    }
+  };
+
   const handleSave = async () => {
     if (!responsavel) {
       toast.error("Selecione o responsável pelo ensaio");
@@ -595,6 +614,8 @@ const RuptureDetailPage = () => {
           </Select>
         </div>
       </div>
+
+      <MoldagemCard batch={batch as any} readOnly={isReadOnly} isSaving={isSavingMoldagem} onSave={handleSaveMoldagem} />
 
       {/* Blocos de amostras por tipo (PRD: bloco, paver, cp) */}
       {tiposVisiveis.map((tipo) => {

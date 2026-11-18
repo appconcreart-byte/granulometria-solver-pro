@@ -5,6 +5,9 @@ export interface DateFilter {
   dateTo: string;   // "YYYY-MM-DD" ou ""
 }
 
+/** Sem filtro de data: mostra todo o histórico. */
+export const ALL_HISTORY_DATE_FILTER: DateFilter = { month: "", year: "", dateFrom: "", dateTo: "" };
+
 export function getDefaultDateFilter(): DateFilter {
   const now = new Date();
   return {
