@@ -13,17 +13,37 @@ import { RegisterProductionModal } from "@/components/production/RegisterProduct
 import { useAuth } from "@/hooks/useAuth";
 import { useAnalyses } from "@/hooks/api/useAnalyses";
 import { useProduction } from "@/hooks/api/useProduction";
+import { useMaterials } from "@/hooks/api/useMaterials";
 import type { StatusType } from "@/components/StatusBadge";
 import { hasActionPermission } from "@/lib/permissions";
 import { TIPOS_ANALISE, createEmptyAnalysis } from "@/lib/analysis-data";
 import type { StoredAnalysis } from "@/hooks/api/useAnalyses";
 import { generateAnalysisPDF } from "@/lib/pdf-generator";
 import { generateAnalysisExcel } from "@/lib/excel-generator";
+import { calcPerda } from "@/lib/production-loss";
+import type { DBProductionBatch } from "@/hooks/api/useProduction";
+
+const fmtNum = (n: number, maxDecimals: number) =>
+  n.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: maxDecimals });
+
+// Lotes antigos podem ter a pista salva como "A", "3" ou "Pista 3": padroniza para "Pista X"
+const fmtPistaFios = (batch: DBProductionBatch) => {
+  if (!batch.pista) return "—";
+  const pista = /^pista/i.test(batch.pista) ? batch.pista : `Pista ${batch.pista}`;
+  return batch.fios ? `${pista} · ${batch.fios} fios` : pista;
+};
+
+const fmtConcreto = (batch: DBProductionBatch) =>
+  batch.volume_concreto_m3 == null ? "—" : fmtNum(batch.volume_concreto_m3, 2);
+
+const fmtAproveitamento = (batch: DBProductionBatch) =>
+  !batch.pista || batch.metros_perda == null ? "—" : `${fmtNum(calcPerda(batch.metros_perda).aproveitamento, 2)}%`;
 
 const ProductionPage = () => {
   const { profile } = useAuth();
   const { analyses } = useAnalyses();
   const { batches } = useProduction();
+  const { materials } = useMaterials();
   // Filtros
   const [batchFilter, setBatchFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -81,8 +101,9 @@ const ProductionPage = () => {
         observacoes: analysis.observacoes ?? "",
         data: analysis.data_analise,
       };
-      generateAnalysisPDF(pdfData, { status: analysis.status });
-      await generateAnalysisExcel(pdfData);
+      const aditivoMarca = pdfData.aditivo_marca_id ? materials.find((m) => m.id === pdfData.aditivo_marca_id)?.nome : undefined;
+      generateAnalysisPDF(pdfData, { status: analysis.status, aditivoMarca });
+      await generateAnalysisExcel(pdfData, { aditivoMarca });
       toast.success("Relatório exportado com sucesso!", {
         description: `Arquivos ${analysis.codigo}_relatorio.pdf e .xlsx baixados`,
       });
@@ -170,6 +191,9 @@ const ProductionPage = () => {
                   <TableHead className="whitespace-nowrap">TIPO</TableHead>
                   <TableHead className="whitespace-nowrap">STATUS</TableHead>
                   <TableHead className="whitespace-nowrap">LOTE</TableHead>
+                  <TableHead className="whitespace-nowrap">PISTA / FIOS</TableHead>
+                  <TableHead className="whitespace-nowrap">CONCRETO (m³)</TableHead>
+                  <TableHead className="whitespace-nowrap">% APROV.</TableHead>
                   <TableHead className="whitespace-nowrap">DATA PRODUÇÃO</TableHead>
                   <TableHead className="whitespace-nowrap">DATA RESULTADO</TableHead>
                   <TableHead className="text-right pr-6">AÇÃO</TableHead>
@@ -206,6 +230,9 @@ const ProductionPage = () => {
                         <TableCell>
                           <span className="text-xs text-muted-foreground italic">Aguardando registro</span>
                         </TableCell>
+                        <TableCell>—</TableCell>
+                        <TableCell>—</TableCell>
+                        <TableCell>—</TableCell>
                         <TableCell>—</TableCell>
                         <TableCell>—</TableCell>
                         <TableCell className="text-right pr-6">
@@ -248,6 +275,9 @@ const ProductionPage = () => {
                       <TableCell>
                         <span className="font-mono text-sm">{batch.batch_code}</span>
                       </TableCell>
+                      <TableCell className="text-sm whitespace-nowrap">{fmtPistaFios(batch)}</TableCell>
+                      <TableCell className="text-sm whitespace-nowrap">{fmtConcreto(batch)}</TableCell>
+                      <TableCell className="text-sm whitespace-nowrap">{fmtAproveitamento(batch)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {batch.produced_at?.slice(0, 10).split('-').reverse().join('/')}
                       </TableCell>
@@ -277,7 +307,7 @@ const ProductionPage = () => {
                 })}
                 {releasedAnalyses.length === 0 && filteredBatches.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum lote encontrado.</TableCell>
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Nenhum lote encontrado.</TableCell>
                   </TableRow>
                 )}
               </TableBody>

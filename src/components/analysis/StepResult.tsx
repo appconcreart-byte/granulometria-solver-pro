@@ -31,6 +31,7 @@ import { useNavigate } from "react-router-dom";
 import { cn, calcularCustoMaterial, calcularCustoTracoCompleto, resolverCimento, resolverAditivo } from "@/lib/utils";
 import { useAnalysisDraftStore } from "@/store/useAnalysisDraftStore";
 import { useMaterials } from "@/hooks/api/useMaterials";
+import { custoAcoPrevisto } from "@/lib/production-cost";
 
 interface StepResultProps {
   data: AnalysisFormData;
@@ -88,6 +89,12 @@ export function StepResult({ data }: StepResultProps) {
     [data.materiais_selecionados]
   );
 
+  // Aço da receita (opcional, por pista): só aparece quando há quantidade informada
+  const temAco = (data.aco_quantidade ?? 0) > 0;
+  const acoLabel = data.aco_descricao ? `Aço — ${data.aco_descricao}` : "Aço";
+  const acoQuantidade = `${(data.aco_quantidade ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} ${data.aco_unidade ?? "kg"}`;
+  const acoCusto = temAco ? custoAcoPrevisto(data, dbMaterials) : null;
+
   const mfCombinado = useMemo(() => {
     if (totalKgMateriais === 0) return undefined;
     return data.materiais_selecionados.reduce((sum, m) => {
@@ -128,8 +135,9 @@ export function StepResult({ data }: StepResultProps) {
   const handleExportPDF = async () => {
     setGeneratingPdf(true);
     try {
-      generateAnalysisPDF(data, { limitesDna, dnaNome: dna?.nome });
-      await generateAnalysisExcel(data, { limitesDna });
+      const aditivoMarca = data.aditivo_marca_id ? dbMaterials.find((m) => m.id === data.aditivo_marca_id)?.nome : undefined;
+      generateAnalysisPDF(data, { limitesDna, dnaNome: dna?.nome, aditivoMarca });
+      await generateAnalysisExcel(data, { limitesDna, aditivoMarca });
       toast.success("Relatório exportado com sucesso!", {
         description: `Arquivos ${data.codigo}_relatorio.pdf e .xlsx baixados`,
       });
@@ -247,6 +255,18 @@ export function StepResult({ data }: StepResultProps) {
                       </TableCell>
                     </TableRow>
                   )}
+                  {/* Aço — por pista, fora do total do traço */}
+                  {temAco && (
+                    <TableRow>
+                      <TableCell>
+                        {acoLabel} <span className="text-[10px] text-muted-foreground">(por pista)</span>
+                      </TableCell>
+                      <TableCell className="text-right font-bold">{acoQuantidade}</TableCell>
+                      <TableCell className="text-right font-bold">
+                        {acoCusto == null ? <span className="text-xs font-medium text-muted-foreground">sem preço</span> : `R$ ${acoCusto.toFixed(2)}`}
+                      </TableCell>
+                    </TableRow>
+                  )}
                   {/* Total */}
                   <TableRow className="bg-success/20 border-t-2 font-black">
                     <TableCell className="font-black uppercase text-sm">TOTAL</TableCell>
@@ -263,6 +283,11 @@ export function StepResult({ data }: StepResultProps) {
                 </TableBody>
               </Table>
             </div>
+            {temAco && (
+              <p className="px-4 py-2 text-[10px] text-muted-foreground">
+                O aço é por pista e não entra no total do traço.
+              </p>
+            )}
           </div>
         </Card>
       )}
@@ -357,6 +382,19 @@ export function StepResult({ data }: StepResultProps) {
                     <TableCell className="text-warning">Aditivos</TableCell>
                     <TableCell className="text-right font-bold text-warning">{data.aditivos_ml} {data.aditivo_unidade ?? "mL"}</TableCell>
                     <TableCell />
+                  </TableRow>
+                )}
+
+                {/* Aço (por pista) */}
+                {temAco && (
+                  <TableRow>
+                    <TableCell>{acoLabel}</TableCell>
+                    <TableCell className="text-right font-bold">{acoQuantidade}</TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant="outline" className="text-[10px] font-bold bg-muted/40 text-muted-foreground">
+                        por pista
+                      </Badge>
+                    </TableCell>
                   </TableRow>
                 )}
 

@@ -18,7 +18,11 @@ interface PDFOptions {
   limitesDna?: Array<{ sieve_id: number; limite_min: number; limite_max: number }>;
   dnaNome?: string;
   status?: StatusType;
+  /** Marca do aditivo escolhida na dosagem (o nome vem do cadastro de materiais) */
+  aditivoMarca?: string;
 }
+
+const fmtQtd = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 3 });
 
 // jsPDF não lê classes Tailwind — mapa paralelo de cor RGB por status,
 // mesmo conjunto de status de análise usado em StatusBadge.
@@ -236,6 +240,23 @@ export function generateAnalysisPDF(data: AnalysisFormData, options?: PDFOptions
     addText(`${dosageResult.agua_batelada} L`, pageWidth - margin - 2, y + 1, { size: 9 });
     doc.text(`${dosageResult.agua_batelada} L`, pageWidth - margin - 2, y + 1, { align: "right" });
     y += 6;
+
+    // Aditivo e aço (opcionais): só entram quando há quantidade informada na dosagem
+    const extras: Array<[string, string]> = [];
+    if (data.aditivos_ml > 0) {
+      const marca = options?.aditivoMarca ? ` (${options.aditivoMarca})` : "";
+      extras.push([`Aditivo${marca}`, `${fmtQtd(data.aditivos_ml)} ${data.aditivo_unidade ?? "mL"}`]);
+    }
+    if ((data.aco_quantidade ?? 0) > 0) {
+      const descricao = data.aco_descricao ? ` — ${data.aco_descricao}` : "";
+      extras.push([`Aço${descricao} (por pista)`, `${fmtQtd(data.aco_quantidade ?? 0)} ${data.aco_unidade ?? "kg"}`]);
+    }
+    extras.forEach(([label, value]) => {
+      checkNewPage(7);
+      addText(label.length > 70 ? `${label.slice(0, 67)}...` : label, margin + 2, y + 1, { size: 9 });
+      doc.text(value, pageWidth - margin - 2, y + 1, { align: "right" });
+      y += 6;
+    });
   }
 
   y += 8;
