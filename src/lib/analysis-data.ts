@@ -288,6 +288,8 @@ export function generateAnalysisCode(): string {
   return `ANL-${year}-${seq}`;
 }
 
+export const UNIDADE_PADRAO = "Concreart";
+
 // Initial form state
 export function createEmptyAnalysis(): AnalysisFormData {
   return {
@@ -296,7 +298,7 @@ export function createEmptyAnalysis(): AnalysisFormData {
     codigo: generateAnalysisCode(),
     data: new Date().toISOString().split("T")[0],
     analista: "",
-    unidade: "",
+    unidade: UNIDADE_PADRAO,
     produto_id: "",
     produto_nome: "",
     resistencia_prevista: 0,
